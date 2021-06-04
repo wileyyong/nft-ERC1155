@@ -53,7 +53,6 @@ contract Base1155 is ERC1155, Ownable {
         // mint the NFT tokens of the collection
         _mint(msg.sender, newItemId, _amount, "");
 
-        // approves the engine to deal with the token
         // save the token data
         tokens[newItemId] = TokenData({
             creator: msg.sender,
