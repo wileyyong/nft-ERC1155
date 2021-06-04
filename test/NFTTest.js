@@ -26,13 +26,13 @@ contract("Base1155 token", accounts => {
   });
 
   it("Should create nft", async () => {
-    var tokenId = await instance.createItem(engine.address, 10, 200, { from: artist });
+    var tokenId = await instance.createItem(10, 200, { from: artist });
     //  console.log("The tokenId is = " + JSON.stringify(tokenId));
     assert.notEqual(tokenId, null);
   });
 
   it("Should create 2nd nft", async () => {
-    var tokenId = await instance.createItem(engine.address, 30, 5, { from: artist });
+    var tokenId = await instance.createItem(30, 5, { from: artist });
     //   console.log("The tokenId is = " + JSON.stringify(tokenId));
     assert.notEqual(tokenId, null);
   });

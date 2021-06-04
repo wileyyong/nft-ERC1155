@@ -43,7 +43,6 @@ contract Base1155 is ERC1155, Ownable {
     }
 
     function createItem(
-        address engine,
         uint256 _amount, // amount of tokens for this item
         uint256 _royalties // amount of royalties in bp
     ) public returns (uint256) {
@@ -55,7 +54,6 @@ contract Base1155 is ERC1155, Ownable {
         _mint(msg.sender, newItemId, _amount, "");
 
         // approves the engine to deal with the token
-        setApprovalForAll(engine, true);
         // save the token data
         tokens[newItemId] = TokenData({
             creator: msg.sender,
