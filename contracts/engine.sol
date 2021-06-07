@@ -3,7 +3,7 @@ pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "./Base1155.sol";
+//import "./Base1155.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 contract Engine is Ownable {
@@ -22,12 +22,12 @@ contract Engine is Ownable {
         uint256 commission,
         uint256 royalties,
         uint256 safetyCheckValue
-    );   
+    );
 
     uint256 public commission = 0; // this is the commission that will charge the marketplace by default.
     uint256 public accumulatedCommission = 0;
 
-    enum Status {pending, active, finished}   
+    enum Status {pending, active, finished}
     struct Offer {
         address assetAddress; // address of the token
         uint256 tokenId; // the tokenId returned when calling "createItem"
@@ -44,6 +44,43 @@ contract Engine is Ownable {
     }
     Offer[] public offers;
 
+    // Data of each token
+    struct TokenData {
+        address tokenAddr;
+        address creator;
+        uint256 royalties;
+        string lockedContent;
+    }
+    mapping(uint256 => TokenData) public tokens;
+
+    // returns the creator of the token
+    function getCreator(uint256 _id) public view returns (address) {
+        return tokens[_id].creator;
+    }
+
+    function getRoyalties(uint256 _id) public view returns (uint256) {
+        return tokens[_id].royalties;
+    }
+
+    function addTokenToMarketplace(
+        address _tokenAddr,
+        uint256 _tokenId,
+        uint256 _royalties,
+        string memory _lockedContent
+    ) public {
+        require(_royalties <= 1000, "Royalties too high"); // you cannot set all royalties + commision. So the limit is 2% for royalties
+
+        if (tokens[_tokenId].creator == address(0)) {
+            // save the token data
+            tokens[_tokenId] = TokenData({
+                tokenAddr: _tokenAddr,
+                creator: msg.sender,
+                royalties: _royalties,
+                lockedContent: _lockedContent
+            });
+        }
+    }
+
     function createOffer(
         address _assetAddress, // address of the token
         uint256 _tokenId, // tokenId
@@ -55,12 +92,12 @@ contract Engine is Ownable {
         uint256 _startTime, // time when the auction will start. Check the format with frontend
         uint256 _duration // duration in seconds of the auction
     ) public returns (uint256) {
-        Base1155 asset = Base1155(_assetAddress);
-         require(
+        ERC1155 asset = ERC1155(_assetAddress);
+        require(
             asset.balanceOf(msg.sender, _tokenId) >= _amount,
             "You are trying to sale more nfts that the ones you have"
         );
-        
+
         Offer memory offer =
             Offer({
                 assetAddress: _assetAddress,
@@ -75,7 +112,7 @@ contract Engine is Ownable {
                 currentBidAmount: _startPrice,
                 currentBidOwner: payable(address(0)),
                 bidCount: 0
-        });
+            });
         offers.push(offer);
         uint256 index = offers.length - 1;
         return index;
@@ -89,7 +126,7 @@ contract Engine is Ownable {
         return block.timestamp;
     }
 
-    function getEndDate(uint256 _offerId) public view returns (uint256){
+    function getEndDate(uint256 _offerId) public view returns (uint256) {
         Offer memory offer = offers[_offerId];
         return offer.startTime + offer.duration;
     }
@@ -124,7 +161,7 @@ contract Engine is Ownable {
         require(paidPrice >= price, "Price is not enough");
 
         emit Claim(_offerId, buyer);
-        Base1155 asset = Base1155(offer.assetAddress);
+        ERC1155 asset = ERC1155(offer.assetAddress);
         asset.safeTransferFrom(
             offer.creator,
             msg.sender,
@@ -134,13 +171,13 @@ contract Engine is Ownable {
         );
 
         // now, pay the amount - commission - royalties to the auction creator
-        address payable creatorNFT = payable(asset.getCreator(_offerId));
+        address payable creatorNFT = payable(getCreator(_offerId));
 
         uint256 commissionToPay = (paidPrice * commission) / 10000;
         uint256 royaltiesToPay = 0;
         if (creatorNFT != offer.creator) {
             // It is a resale. Transfer royalties
-            royaltiesToPay = (paidPrice * asset.getRoyalties(_offerId)) / 10000;
+            royaltiesToPay = (paidPrice * getRoyalties(_offerId)) / 10000;
             creatorNFT.transfer(royaltiesToPay);
             emit Royalties(creatorNFT, royaltiesToPay);
         }
@@ -181,7 +218,7 @@ contract Engine is Ownable {
     function bid(uint256 _offerId) public payable {
         Offer storage offer = offers[_offerId];
         require(offer.creator != address(0));
-      //  require(isActive(_offerId));
+        //  require(isActive(_offerId));
         require(msg.value > offer.currentBidAmount, "Bid too low");
         // we got a better bid. Return funds to the previous best bidder
         // and register the sender as `currentBidOwner`
@@ -206,7 +243,6 @@ contract Engine is Ownable {
 
         emit AuctionBid(_offerId, msg.sender, msg.value);
     }
-   
 
     function isActive(uint256 _offerId) public view returns (bool) {
         return getStatus(_offerId) == Status.active;
@@ -267,7 +303,7 @@ contract Engine is Ownable {
         // the token could be sold in direct sale or the owner cancelled the auction
         require(offer.isAuction == true, "NFT not in auction");
 
-        Base1155 asset = Base1155(offer.assetAddress);
+        ERC1155 asset = ERC1155(offer.assetAddress);
         asset.safeTransferFrom(
             offer.creator,
             msg.sender,
@@ -279,15 +315,13 @@ contract Engine is Ownable {
         emit Claim(_offerId, winner);
 
         // now, pay the amount - commission - royalties to the auction creator
-        address payable creatorNFT = payable(asset.getCreator(offer.tokenId));
-        uint256 commissionToPay =
-            (offer.currentBidAmount * commission) / 10000;
+        address payable creatorNFT = payable(getCreator(offer.tokenId));
+        uint256 commissionToPay = (offer.currentBidAmount * commission) / 10000;
         uint256 royaltiesToPay = 0;
         if (creatorNFT != offer.creator) {
             // It is a resale. Transfer royalties
             royaltiesToPay =
-                (offer.currentBidAmount *
-                    asset.getRoyalties(offer.tokenId)) /
+                (offer.currentBidAmount * getRoyalties(offer.tokenId)) /
                 10000;
             creatorNFT.transfer(royaltiesToPay);
             emit Royalties(creatorNFT, royaltiesToPay);

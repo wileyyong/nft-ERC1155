@@ -26,13 +26,15 @@ contract("Base1155 token", accounts => {
   });
 
   it("Should create nft", async () => {
-    var tokenId = await instance.createItem(10, 200, { from: artist });
+    var tokenId = await instance.createItem(10, { from: artist });
+    engine.addTokenToMarketplace(instance.address, 1, 200, "");
     //  console.log("The tokenId is = " + JSON.stringify(tokenId));
     assert.notEqual(tokenId, null);
   });
 
   it("Should create 2nd nft", async () => {
-    var tokenId = await instance.createItem(30, 5, { from: artist });
+    var tokenId = await instance.createItem(30, { from: artist });
+    engine.addTokenToMarketplace(instance.address, 2, 300, "secretCode");
     //   console.log("The tokenId is = " + JSON.stringify(tokenId));
     assert.notEqual(tokenId, null);
   });
@@ -97,10 +99,10 @@ contract("Base1155 token", accounts => {
   });
 
   it("Should show tokens", async () => {
-    const item = await instance.tokens(1);
+    const item = await engine.tokens(1);
     // var obj = JSON.parse(item);
-    //    console.log("The tokens price are = " + item.price);
-    const item2 = await instance.tokens(2);
+        console.log("The tokens price are = " + JSON.stringify(item));
+    const item2 = await engine.tokens(2);
     //    console.log("The token 2 are = " + item2.price);
     assert.equal(item.royalties, 200);
   });
@@ -217,5 +219,23 @@ contract("Base1155 token", accounts => {
     console.log("Balance before " + userBalanceB + " after " + userBalanceA);
   });
 
+  it("calc of gas for minting", async function () {
+    let ahora = await engine.ahora();
+    var receipt = await instance.createItem(10, { from: artist });
+    let gasUsed = receipt.receipt.gasUsed;
+ //   console.log(`GasUsed: ${receipt.receipt.gasUsed}`);
+    receipt =  await instance.setApprovalForAll(engine.address, true, { from: artist });
+ //   console.log(`GasUsed: ${receipt.receipt.gasUsed}`);
+    gasUsed += receipt.receipt.gasUsed;
+
+    receipt = await engine.addTokenToMarketplace(instance.address, 3, 200, "");
+    //   console.log(`GasUsed: ${receipt.receipt.gasUsed}`);
+       gasUsed += receipt.receipt.gasUsed;
+
+    receipt = await engine.createOffer(instance.address, 3, 2, true, true, 100000000000, 0, ahora, 10, { from: artist });
+ //   console.log(`GasUsed: ${receipt.receipt.gasUsed}`);
+    gasUsed += receipt.receipt.gasUsed;
+    console.log(`Total GasUsed on create: ${gasUsed}`);
+  });
 });
 
