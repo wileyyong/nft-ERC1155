@@ -49,6 +49,7 @@ contract Engine is Ownable {
         address tokenAddr;
         address creator;
         uint256 royalties;
+        string lockedContent;
     }
     mapping(uint256 => TokenData) public tokens;
 
@@ -61,15 +62,21 @@ contract Engine is Ownable {
         return tokens[_id].royalties;
     }
 
-    function addTokenToMarketplace(address _tokenAddr, uint256 _tokenId, uint256 _royalties)
-        public
-    {
+    function addTokenToMarketplace(
+        address _tokenAddr,
+        uint256 _tokenId,
+        uint256 _royalties,
+        string memory _lockedContent
+    ) public {
+        require(_royalties <= 1000, "Royalties too high"); // you cannot set all royalties + commision. So the limit is 2% for royalties
+
         if (tokens[_tokenId].creator == address(0)) {
             // save the token data
             tokens[_tokenId] = TokenData({
                 tokenAddr: _tokenAddr,
                 creator: msg.sender,
-                royalties: _royalties
+                royalties: _royalties,
+                lockedContent: _lockedContent
             });
         }
     }
