@@ -51,16 +51,16 @@ contract Engine is Ownable {
         uint256 royalties;
         string lockedContent;
     }
-    mapping(uint256 => TokenData) public tokens;
+    mapping(bytes32 => TokenData) public tokens;
 
     // returns the creator of the token
-    function getCreator(uint256 _id) public view returns (address) {
-        return tokens[_id].creator;
+    function getCreator(address _tokenAddress, uint256 _id) public view returns (address) {
+        return tokens[keccak256(abi.encodePacked(_tokenAddress, _id))].creator;
     }
 
-    function getRoyalties(uint256 _id) public view returns (uint256) {
-        return tokens[_id].royalties;
-    }
+    function getRoyalties(address _tokenAddress, uint256 _id) public view returns (uint256) {
+        return tokens[keccak256(abi.encodePacked(_tokenAddress, _id))].royalties;
+    }    
 
     function addTokenToMarketplace(
         address _tokenAddr,
@@ -70,9 +70,9 @@ contract Engine is Ownable {
     ) public {
         require(_royalties <= 1000, "Royalties too high"); // you cannot set all royalties + commision. So the limit is 2% for royalties
 
-        if (tokens[_tokenId].creator == address(0)) {
+        if (tokens[keccak256(abi.encodePacked(_tokenAddr, _tokenId))].creator == address(0)) {
             // save the token data
-            tokens[_tokenId] = TokenData({
+            tokens[keccak256(abi.encodePacked(_tokenAddr, _tokenId))] = TokenData({
                 tokenAddr: _tokenAddr,
                 creator: msg.sender,
                 royalties: _royalties,
@@ -171,13 +171,13 @@ contract Engine is Ownable {
         );
 
         // now, pay the amount - commission - royalties to the auction creator
-        address payable creatorNFT = payable(getCreator(_offerId));
+        address payable creatorNFT = payable(getCreator(offer.assetAddress, _offerId));
 
         uint256 commissionToPay = (paidPrice * commission) / 10000;
         uint256 royaltiesToPay = 0;
         if (creatorNFT != offer.creator) {
             // It is a resale. Transfer royalties
-            royaltiesToPay = (paidPrice * getRoyalties(_offerId)) / 10000;
+            royaltiesToPay = (paidPrice * getRoyalties(offer.assetAddress,_offerId)) / 10000;
             creatorNFT.transfer(royaltiesToPay);
             emit Royalties(creatorNFT, royaltiesToPay);
         }
@@ -315,13 +315,13 @@ contract Engine is Ownable {
         emit Claim(_offerId, winner);
 
         // now, pay the amount - commission - royalties to the auction creator
-        address payable creatorNFT = payable(getCreator(offer.tokenId));
+        address payable creatorNFT = payable(getCreator(offer.assetAddress, offer.tokenId));
         uint256 commissionToPay = (offer.currentBidAmount * commission) / 10000;
         uint256 royaltiesToPay = 0;
         if (creatorNFT != offer.creator) {
             // It is a resale. Transfer royalties
             royaltiesToPay =
-                (offer.currentBidAmount * getRoyalties(offer.tokenId)) /
+                (offer.currentBidAmount * getRoyalties(offer.assetAddress, offer.tokenId)) /
                 10000;
             creatorNFT.transfer(royaltiesToPay);
             emit Royalties(creatorNFT, royaltiesToPay);
