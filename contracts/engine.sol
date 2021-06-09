@@ -60,6 +60,10 @@ contract Engine is Ownable {
 
     function getRoyalties(address _tokenAddress, uint256 _id) public view returns (uint256) {
         return tokens[keccak256(abi.encodePacked(_tokenAddress, _id))].royalties;
+    }  
+
+    function getLockedContent(address _tokenAddress, uint256 _id) public view returns (string memory) {
+        return tokens[keccak256(abi.encodePacked(_tokenAddress, _id))].lockedContent;
     }    
 
     function addTokenToMarketplace(

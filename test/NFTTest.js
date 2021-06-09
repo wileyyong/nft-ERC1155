@@ -81,36 +81,27 @@ contract("Base1155 token", accounts => {
     const artistResult1 = await instance.balanceOf(artist, 1);
     // sell token from artist
     const result = await engine.createOffer(instance.address, 1, 2, true, false, 13000, 0, 0, 20, { from: artist });
+    console.log ("Total offers now = " + await engine.getOffersCount() + " -- balance of artist =" + artistResult1);
     // winner buy the token
-    await engine.buy(1, { from: winner, value: 14000 });
+    await engine.buy(2, { from: winner, value: 14000 });
     // now the winner wants to put to sale the token he just bought
     await instance.setApprovalForAll(engine.address, true, { from: winner });
     const idOffer = await engine.createOffer(instance.address, 1, 2, true, false, 15000, 0, 0, 20, { from: winner });
 
     const offer = await engine.offers(2);
-    await engine.buy(2, { from: secondBuyer, value: 15000 });
+    await engine.buy(3, { from: secondBuyer, value: 15000 });
 
     const ownerResult2 = await instance.balanceOf(winner, 1);
     const artistResult2 = await instance.balanceOf(artist, 1);
     const moneyAfter = await await web3.eth.getBalance(artist);
     console.log("Balance buyer before " + ownerResult1 + " -- balance buyer after " + ownerResult2);
     console.log("Balance artist before " + artistResult1 + " -- balance buyer after " + artistResult2 + " *** money before " + moneyBefore + " money after " + moneyAfter);
-
   });
 
- /* it("Should show tokens", async () => {
-    const item = await engine.tokens(instance.address, 1);
-    // var obj = JSON.parse(item);
-        console.log("The tokens price are = " + JSON.stringify(item));
-    const item2 = await engine.tokens(instance.address, 2);
-    //    console.log("The token 2 are = " + item2.price);
-    assert.equal(item.royalties, 200);
-  });
-*/
   it("should fail if an auction is created by a not-owner", async function () {
     // make sure account[1] is owner of the book
     let amount = await instance.balanceOf(artist, 1);
-    assert.equal(amount.toNumber(), 6);
+    assert.equal(amount.toNumber(), 8);
     // allow engine to transfer the nft
     await instance.setApprovalForAll(engine.address, true, { from: artist });
     try {
@@ -123,7 +114,7 @@ contract("Base1155 token", accounts => {
 
   it("should create an auction", async function () {
     let amount = await instance.balanceOf(artist, 1);
-    assert.equal(amount.toNumber(), 6);
+    assert.equal(amount.toNumber(), 8);
     // allow engine to transfer the nft
     // create auction
     let ahora = await engine.ahora();
@@ -237,5 +228,6 @@ contract("Base1155 token", accounts => {
     gasUsed += receipt.receipt.gasUsed;
     console.log(`Total GasUsed on create: ${gasUsed}`);
   });
+/*  */
 });
 
