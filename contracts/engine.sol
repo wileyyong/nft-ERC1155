@@ -9,7 +9,7 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 contract Engine is Ownable {
     using SafeMath for uint256;
 
-    event AuctionCreated(uint256 _index, address _creator, address _asset);
+    event OfferCreated(uint256 _index, address _creator, address _asset, uint256 _tokenId);
     event AuctionBid(uint256 _index, address _bidder, uint256 amount);
     event Claim(uint256 auctionIndex, address claimer);
     event ReturnBidFunds(uint256 _index, address _bidder, uint256 amount);
@@ -27,44 +27,63 @@ contract Engine is Ownable {
     uint256 public commission = 0; // this is the commission that will charge the marketplace by default.
     uint256 public accumulatedCommission = 0;
 
-    enum Status {pending, active, finished}
+    enum Status {
+        pending,
+        active,
+        finished
+    }
     struct Offer {
-        address assetAddress;       // address of the token
-        uint256 tokenId;            // the tokenId returned when calling "createItem"
-        uint256 amount;             // amount of tokens on sale on this offer
-        address payable creator;    // who creates the offer
-        uint256 price;              // price of each token
-        bool isOnSale;              // is on sale or not
-        bool isAuction;             // is this offer is for an auction
-        uint256 startTime;          // when the auction starts
-        uint256 duration;           // duration in seconds of the auction
-        uint256 currentBidAmount;   // current amount paid by the best bidder 
-        address payable currentBidOwner;    // address of the best bidder
-        uint256 bidCount;           // counter of the bids of the auction
+        address assetAddress; // address of the token
+        uint256 tokenId; // the tokenId returned when calling "createItem"
+        uint256 amount; // amount of tokens on sale on this offer
+        address payable creator; // who creates the offer
+        uint256 price; // price of each token
+        bool isOnSale; // is on sale or not
+        bool isAuction; // is this offer is for an auction
+        uint256 startTime; // when the auction starts
+        uint256 duration; // duration in seconds of the auction
+        uint256 currentBidAmount; // current amount paid by the best bidder
+        address payable currentBidOwner; // address of the best bidder
+        uint256 bidCount; // counter of the bids of the auction
     }
     Offer[] public offers;
 
     // Data of each token
     struct TokenData {
-        address tokenAddr;      // address of each token. Because the system will support several ERC1155 tokens and not only ours
-        address creator;        // creator/artist. Needed for knowing who will receive the royalties
-        uint256 royalties;      // royalties in basic points (so a 2% is 200, a 1.5% is 150, etc.)
-        string lockedContent;   // content only available to the owner that could contain stuff like coupons, discounts, etc. 
+        address tokenAddr; // address of each token. Because the system will support several ERC1155 tokens and not only ours
+        address creator; // creator/artist. Needed for knowing who will receive the royalties
+        uint256 royalties; // royalties in basic points (so a 2% is 200, a 1.5% is 150, etc.)
+        string lockedContent; // content only available to the owner that could contain stuff like coupons, discounts, etc.
     }
     mapping(bytes32 => TokenData) tokens;
 
     // returns the creator of the token
-    function getCreator(address _tokenAddress, uint256 _id) public view returns (address) {
+    function getCreator(address _tokenAddress, uint256 _id)
+        public
+        view
+        returns (address)
+    {
         return tokens[keccak256(abi.encodePacked(_tokenAddress, _id))].creator;
     }
 
-    function getRoyalties(address _tokenAddress, uint256 _id) public view returns (uint256) {
-        return tokens[keccak256(abi.encodePacked(_tokenAddress, _id))].royalties;
-    }  
+    function getRoyalties(address _tokenAddress, uint256 _id)
+        public
+        view
+        returns (uint256)
+    {
+        return
+            tokens[keccak256(abi.encodePacked(_tokenAddress, _id))].royalties;
+    }
 
-    function getLockedContent(address _tokenAddress, uint256 _id) public view returns (string memory) {
-        return tokens[keccak256(abi.encodePacked(_tokenAddress, _id))].lockedContent;
-    }    
+    function getLockedContent(address _tokenAddress, uint256 _id)
+        public
+        view
+        returns (string memory)
+    {
+        return
+            tokens[keccak256(abi.encodePacked(_tokenAddress, _id))]
+                .lockedContent;
+    }
 
     // Adds the token to the "tokens" table on the marketplace. This is needed is we want to import NFTs created outside of the marketplace
     function addTokenToMarketplace(
@@ -75,9 +94,14 @@ contract Engine is Ownable {
     ) public {
         require(_royalties <= 1000, "Royalties too high"); // you cannot set all royalties + commision. So the limit is 10% for royalties
 
-        if (tokens[keccak256(abi.encodePacked(_tokenAddr, _tokenId))].creator == address(0)) {
+        if (
+            tokens[keccak256(abi.encodePacked(_tokenAddr, _tokenId))].creator ==
+            address(0)
+        ) {
             // save the token data
-            tokens[keccak256(abi.encodePacked(_tokenAddr, _tokenId))] = TokenData({
+            tokens[
+                keccak256(abi.encodePacked(_tokenAddr, _tokenId))
+            ] = TokenData({
                 tokenAddr: _tokenAddr,
                 creator: msg.sender,
                 royalties: _royalties,
@@ -104,23 +128,24 @@ contract Engine is Ownable {
             "You are trying to sale more nfts that the ones you have"
         );
 
-        Offer memory offer =
-            Offer({
-                assetAddress: _assetAddress,
-                tokenId: _tokenId,
-                amount: _amount,
-                creator: payable(msg.sender),
-                price: _price,
-                isOnSale: _isDirectSale,
-                isAuction: _isAuction,
-                startTime: _startTime,
-                duration: _duration,
-                currentBidAmount: _startPrice,
-                currentBidOwner: payable(address(0)),
-                bidCount: 0
-            });
+        Offer memory offer = Offer({
+            assetAddress: _assetAddress,
+            tokenId: _tokenId,
+            amount: _amount,
+            creator: payable(msg.sender),
+            price: _price,
+            isOnSale: _isDirectSale,
+            isAuction: _isAuction,
+            startTime: _startTime,
+            duration: _duration,
+            currentBidAmount: _startPrice,
+            currentBidOwner: payable(address(0)),
+            bidCount: 0
+        });
         offers.push(offer);
         uint256 index = offers.length - 1;
+
+        emit OfferCreated(index, msg.sender, _assetAddress, _tokenId);
         return index;
     }
 
@@ -172,18 +197,22 @@ contract Engine is Ownable {
             offer.creator,
             msg.sender,
             offer.tokenId,
-            offer.amount,
+            1, // only send one item instead of offer.amount,
             ""
         );
 
         // now, pay the amount - commission - royalties to the auction creator
-        address payable creatorNFT = payable(getCreator(offer.assetAddress, _offerId));
+        address payable creatorNFT = payable(
+            getCreator(offer.assetAddress, _offerId)
+        );
 
         uint256 commissionToPay = (paidPrice * commission) / 10000;
         uint256 royaltiesToPay = 0;
         if (creatorNFT != offer.creator) {
             // It is a resale. Transfer royalties
-            royaltiesToPay = (paidPrice * getRoyalties(offer.assetAddress,_offerId)) / 10000;
+            royaltiesToPay =
+                (paidPrice * getRoyalties(offer.assetAddress, _offerId)) /
+                10000;
             creatorNFT.transfer(royaltiesToPay);
             emit Royalties(creatorNFT, royaltiesToPay);
         }
@@ -214,8 +243,13 @@ contract Engine is Ownable {
 
         accumulatedCommission += commissionToPay;
 
-        offer.isAuction = false;
-        offer.isOnSale = false;
+        // if there are no items left in the offer close the offer. Otherwise subtract 1 to the offer amount of tokens for sale
+        if (offer.amount == 1) {
+            offer.isAuction = false;
+            offer.isOnSale = false;
+        }
+
+        offer.amount = offer.amount.sub(1);
         offers[_offerId] = offer;
     }
 
@@ -314,26 +348,30 @@ contract Engine is Ownable {
             offer.creator,
             msg.sender,
             offer.tokenId,
-            offer.amount,
+            1, //offer.amount,
             ""
         );
 
         emit Claim(_offerId, winner);
 
         // now, pay the amount - commission - royalties to the auction creator
-        address payable creatorNFT = payable(getCreator(offer.assetAddress, offer.tokenId));
+        address payable creatorNFT = payable(
+            getCreator(offer.assetAddress, offer.tokenId)
+        );
         uint256 commissionToPay = (offer.currentBidAmount * commission) / 10000;
         uint256 royaltiesToPay = 0;
         if (creatorNFT != offer.creator) {
             // It is a resale. Transfer royalties
             royaltiesToPay =
-                (offer.currentBidAmount * getRoyalties(offer.assetAddress, offer.tokenId)) /
+                (offer.currentBidAmount *
+                    getRoyalties(offer.assetAddress, offer.tokenId)) /
                 10000;
             creatorNFT.transfer(royaltiesToPay);
             emit Royalties(creatorNFT, royaltiesToPay);
         }
-        uint256 amountToPay =
-            offer.currentBidAmount - commissionToPay - royaltiesToPay;
+        uint256 amountToPay = offer.currentBidAmount -
+            commissionToPay -
+            royaltiesToPay;
 
         offer.creator.transfer(amountToPay);
         emit PaymentToOwner(
@@ -347,8 +385,15 @@ contract Engine is Ownable {
 
         accumulatedCommission += commissionToPay;
 
-        offer.isAuction = false;
-        offer.isOnSale = false;
+        // if there are no items left in the offer close the offer. Otherwise subtract 1 to the offer amount of tokens for sale
+        if (offer.amount == 1) {
+            offer.isAuction = false;
+            offer.isOnSale = false;
+        } else {
+            offer.currentBidOwner = payable(0);
+        }
+
+        offer.amount = offer.amount.sub(1);           
         offers[_offerId] = offer;
     }
 

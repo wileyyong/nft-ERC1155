@@ -59,7 +59,6 @@ contract("Base1155 token", accounts => {
 
     let balance = await web3.eth.getBalance(engine.address);
     console.log("Balance contract created auction = " + web3.utils.fromWei(balance, 'ether'));
-
   });
 
   it("Should create an offer direct sale", async () => {
@@ -79,17 +78,31 @@ contract("Base1155 token", accounts => {
     const moneyBefore = await await web3.eth.getBalance(artist);
     const ownerResult1 = await instance.balanceOf(winner, 1);
     const artistResult1 = await instance.balanceOf(artist, 1);
-    // sell token from artist
+    // sell token from artist. Put 2 units for sale
     const result = await engine.createOffer(instance.address, 1, 2, true, false, 13000, 0, 0, 20, { from: artist });
-    console.log ("Total offers now = " + await engine.getOffersCount() + " -- balance of artist =" + artistResult1);
+    assert.equal(result.receipt.logs[0].args._index, 2);
+    console.log("Total offers now = " + await engine.getOffersCount() + " -- balance of artist =" + artistResult1);
     // winner buy the token
     await engine.buy(2, { from: winner, value: 14000 });
     // now the winner wants to put to sale the token he just bought
     await instance.setApprovalForAll(engine.address, true, { from: winner });
-    const idOffer = await engine.createOffer(instance.address, 1, 2, true, false, 15000, 0, 0, 20, { from: winner });
+    // try to sell more tokens than he bought. This triggers an error
+    try {
+      const idOffer = await engine.createOffer(instance.address, 1, 2, true, false, 15000, 0, 0, 20, { from: winner });
+    }
+    catch (error) { assert.equal(error.reason, "You are trying to sale more nfts that the ones you have"); }
 
-    const offer = await engine.offers(2);
+    // now put on sale the token bought
+    const resultOffer = await engine.createOffer(instance.address, 1, 1, true, false, 15000, 0, 0, 20, { from: winner });
+    assert.equal(resultOffer.receipt.logs[0].args._index, 3);
+    let offer = await engine.offers(3);
+    console.log("available items on offer #3 = " + offer.amount);
+
+    // the second buyer buys the token that previous buyer put on sale
     await engine.buy(3, { from: secondBuyer, value: 15000 });
+
+    offer = await engine.offers(3);
+    console.log("available items on offer #3 after selling = " + offer.amount);
 
     const ownerResult2 = await instance.balanceOf(winner, 1);
     const artistResult2 = await instance.balanceOf(artist, 1);
@@ -97,6 +110,23 @@ contract("Base1155 token", accounts => {
     console.log("Balance buyer before " + ownerResult1 + " -- balance buyer after " + ownerResult2);
     console.log("Balance artist before " + artistResult1 + " -- balance buyer after " + artistResult2 + " *** money before " + moneyBefore + " money after " + moneyAfter);
   });
+
+  it("should fail if try to buy an item from an empty offer", async function () {
+    try {
+      await engine.buy(3, { from: secondBuyer, value: 15000 });
+    }
+    catch (error) { assert.equal(error.reason, "NFT not in direct sale"); }
+  });
+
+  it("should let buy from offer even after some tokens has already been bought", async function () {
+    let offer = await engine.offers(2); 
+    console.log(JSON.stringify(offer));
+    console.log("There are " + offer.amount + " items available on offer #2");
+    await engine.buy(2, { from: secondBuyer, value: 15000 });
+    offer = await engine.offers(2); 
+    console.log("There are " + offer.amount + " items available on offer #2");
+  });
+
 
   it("should fail if an auction is created by a not-owner", async function () {
     // make sure account[1] is owner of the book
@@ -109,7 +139,6 @@ contract("Base1155 token", accounts => {
       await engine.createOffer(instance.address, 1, 7, true, true, 100000000000, 0, 0, 10, { from: accounts[1] });
     }
     catch (error) { assert.equal(error.reason, "You are trying to sale more nfts that the ones you have"); }
-
   });
 
   it("should create an auction", async function () {
@@ -118,7 +147,8 @@ contract("Base1155 token", accounts => {
     // allow engine to transfer the nft
     // create auction
     let ahora = await engine.ahora();
-    await engine.createOffer(instance.address, 1, 4, true, true, 100000000000, 0, ahora, 10, { from: artist });
+    let resultOffer = await engine.createOffer(instance.address, 1, 4, true, true, 100000000000, 0, ahora, 10, { from: artist });
+    assert.equal(resultOffer.receipt.logs[0].args._index, 4);
     let count = await engine.getOffersCount();
     console.log("Num offers=" + count);
   });
@@ -200,7 +230,7 @@ contract("Base1155 token", accounts => {
     try {
       await engine.claimAsset(4, { from: accounts[9] });
     }
-    catch (error) { assert.equal(error.reason, "NFT not in auction"); }
+    catch (error) { assert.equal(error.reason, "You are not the winner of the auction"); }
   });
 
   it("Should transfer funds to contract owner", async () => {
@@ -208,26 +238,26 @@ contract("Base1155 token", accounts => {
     let value = await engine.extractBalance({ from: accounts[8] });
     let userBalanceA = await web3.eth.getBalance(accounts[8]);
     console.log("Balance before " + userBalanceB + " after " + userBalanceA);
-  });
+  });  
 
   it("calc of gas for minting", async function () {
     let ahora = await engine.ahora();
     var receipt = await instance.createItem(10, { from: artist });
     let gasUsed = receipt.receipt.gasUsed;
- //   console.log(`GasUsed: ${receipt.receipt.gasUsed}`);
-    receipt =  await instance.setApprovalForAll(engine.address, true, { from: artist });
- //   console.log(`GasUsed: ${receipt.receipt.gasUsed}`);
+    //   console.log(`GasUsed: ${receipt.receipt.gasUsed}`);
+    receipt = await instance.setApprovalForAll(engine.address, true, { from: artist });
+    //   console.log(`GasUsed: ${receipt.receipt.gasUsed}`);
     gasUsed += receipt.receipt.gasUsed;
 
     receipt = await engine.addTokenToMarketplace(instance.address, 3, 200, "");
     //   console.log(`GasUsed: ${receipt.receipt.gasUsed}`);
-       gasUsed += receipt.receipt.gasUsed;
+    gasUsed += receipt.receipt.gasUsed;
 
     receipt = await engine.createOffer(instance.address, 3, 2, true, true, 100000000000, 0, ahora, 10, { from: artist });
- //   console.log(`GasUsed: ${receipt.receipt.gasUsed}`);
+    //   console.log(`GasUsed: ${receipt.receipt.gasUsed}`);
     gasUsed += receipt.receipt.gasUsed;
     console.log(`Total GasUsed on create: ${gasUsed}`);
   });
-/*  */
+  
 });
 
