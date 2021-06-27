@@ -258,7 +258,8 @@ contract Engine is Ownable {
     function bid(uint256 _offerId) public payable {
         Offer storage offer = offers[_offerId];
         require(offer.creator != address(0));
-        //  require(isActive(_offerId));
+        require(offer.isAuction == true, "Auction is not active");
+        require(offer.amount > 0, "Auction did not have copies on sale");
         require(msg.value > offer.currentBidAmount, "Bid too low");
         // we got a better bid. Return funds to the previous best bidder
         // and register the sender as `currentBidOwner`
@@ -391,6 +392,27 @@ contract Engine is Ownable {
             offer.isOnSale = false;
         } else {
             offer.currentBidOwner = payable(0);
+            offer.currentBidAmount = 0;
+        }
+
+        offer.amount = offer.amount.sub(1);           
+        offers[_offerId] = offer;
+    }
+
+/* DANGER. The owner should call this method when a bidder wins an auction but did not claim the tokens
+ if this happens, the auction is blocked and the rest of the copies on the offer could not be sold
+ This method clears the offer and behaves as if the winned had claimed the nft.
+ After calling this method the funds are in the smart contract wallet. So a manual transfer of royalties
+ and funds should be made, along with the NFT, to the corresponding users.
+ */
+    function forceAuctionEnding(uint256 _offerId) public onlyOwner {
+        Offer storage offer = offers[_offerId];
+        if (offer.amount == 1) {
+            offer.isAuction = false;
+            offer.isOnSale = false;
+        } else {
+            offer.currentBidOwner = payable(0);
+            offer.currentBidAmount = 0;
         }
 
         offer.amount = offer.amount.sub(1);           

@@ -120,7 +120,7 @@ contract("Base1155 token", accounts => {
 
   it("should let buy from offer even after some tokens has already been bought", async function () {
     let offer = await engine.offers(2); 
-    console.log(JSON.stringify(offer));
+  //  console.log(JSON.stringify(offer));
     console.log("There are " + offer.amount + " items available on offer #2");
     await engine.buy(2, { from: secondBuyer, value: 15000 });
     offer = await engine.offers(2); 
@@ -218,8 +218,7 @@ contract("Base1155 token", accounts => {
     console.log("Balance contract before claiming = " + web3.utils.fromWei(balance, 'ether'));
 
     let offer = await engine.offers(4);
-    console.log(JSON.stringify(offer));
-
+    
     await engine.claimAsset(4, { from: accounts[9] });
 
     balance = await web3.eth.getBalance(engine.address);
@@ -231,6 +230,35 @@ contract("Base1155 token", accounts => {
       await engine.claimAsset(4, { from: accounts[9] });
     }
     catch (error) { assert.equal(error.reason, "You are not the winner of the auction"); }
+  });
+
+  it("should allow bids on open offers", async function () {
+    await engine.bid(4, { from: accounts[1], value: 100000000000000 });   
+    var currentBid = await engine.getCurrentBidAmount(4);
+    console.log("Current bid = " + currentBid);
+    assert.equal(currentBid, 100000000000000);
+  });
+
+  it("should allow bids and claims on open offers", async function () {
+    await helper.advanceTimeAndBlock(20); // wait 20 seconds in the blockchain
+    await engine.claimAsset(4, { from: accounts[1] });    
+    
+    await engine.bid(4, { from: accounts[1], value: 100000000000000 }); 
+    await helper.advanceTimeAndBlock(20); // wait 20 seconds in the blockchain
+    await engine.claimAsset(4, { from: accounts[1] });    
+      
+    await engine.bid(4, { from: accounts[1], value: 100000000000000 }); 
+    await helper.advanceTimeAndBlock(20); // wait 20 seconds in the blockchain
+    await engine.claimAsset(4, { from: accounts[1] });    
+  });
+
+  it("should not allow bids and claims on closed offers", async function () {
+    try {
+    await engine.bid(4, { from: accounts[1], value: 100000000000000 }); 
+    await helper.advanceTimeAndBlock(20); // wait 20 seconds in the blockchain
+    await engine.claimAsset(4, { from: accounts[1] }); 
+    }
+    catch (error) { assert.equal(error.reason, "Auction is not active"); }
   });
 
   it("Should transfer funds to contract owner", async () => {
