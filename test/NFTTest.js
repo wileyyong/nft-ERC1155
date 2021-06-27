@@ -26,17 +26,17 @@ contract("Base1155 token", accounts => {
   });
 
   it("Should create nft", async () => {
-    var tokenId = await instance.createItem(10, { from: artist });
+    var createItemResponse = await instance.createItem(10, { from: artist });
     engine.addTokenToMarketplace(instance.address, 1, 200, "");
     //  console.log("The tokenId is = " + JSON.stringify(tokenId));
-    assert.notEqual(tokenId, null);
+    assert.equal(createItemResponse.receipt.logs[0].args.id, 1);
   });
 
   it("Should create 2nd nft", async () => {
-    var tokenId = await instance.createItem(30, { from: artist });
+    var createItemResponse = await instance.createItem(30, { from: artist });
     engine.addTokenToMarketplace(instance.address, 2, 300, "secretCode");
-    //   console.log("The tokenId is = " + JSON.stringify(tokenId));
-    assert.notEqual(tokenId, null);
+    //   console.log("The tokenId is = " + JSON.stringify(createItemResponse.receipt.logs[0].args.id));
+    assert.equal(createItemResponse.receipt.logs[0].args.id, 2);
   });
 
   it("Should show URL", async () => {
@@ -205,7 +205,7 @@ contract("Base1155 token", accounts => {
 
   it("Should transfer funds to contract owner", async () => {
     let userBalanceB = await web3.eth.getBalance(accounts[8]);
-    let auctionId = await engine.extractBalance({ from: accounts[8] });
+    let value = await engine.extractBalance({ from: accounts[8] });
     let userBalanceA = await web3.eth.getBalance(accounts[8]);
     console.log("Balance before " + userBalanceB + " after " + userBalanceA);
   });

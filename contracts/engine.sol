@@ -29,29 +29,29 @@ contract Engine is Ownable {
 
     enum Status {pending, active, finished}
     struct Offer {
-        address assetAddress; // address of the token
-        uint256 tokenId; // the tokenId returned when calling "createItem"
-        uint256 amount;
-        address payable creator; // who creates the offer
-        uint256 price; // price of each token
-        bool isOnSale; // is on sale or not
-        bool isAuction; // is this offer is for an auction
-        uint256 startTime;
-        uint256 duration;
-        uint256 currentBidAmount;
-        address payable currentBidOwner;
-        uint256 bidCount;
+        address assetAddress;       // address of the token
+        uint256 tokenId;            // the tokenId returned when calling "createItem"
+        uint256 amount;             // amount of tokens on sale on this offer
+        address payable creator;    // who creates the offer
+        uint256 price;              // price of each token
+        bool isOnSale;              // is on sale or not
+        bool isAuction;             // is this offer is for an auction
+        uint256 startTime;          // when the auction starts
+        uint256 duration;           // duration in seconds of the auction
+        uint256 currentBidAmount;   // current amount paid by the best bidder 
+        address payable currentBidOwner;    // address of the best bidder
+        uint256 bidCount;           // counter of the bids of the auction
     }
     Offer[] public offers;
 
     // Data of each token
     struct TokenData {
-        address tokenAddr;
-        address creator;
-        uint256 royalties;
-        string lockedContent;
+        address tokenAddr;      // address of each token. Because the system will support several ERC1155 tokens and not only ours
+        address creator;        // creator/artist. Needed for knowing who will receive the royalties
+        uint256 royalties;      // royalties in basic points (so a 2% is 200, a 1.5% is 150, etc.)
+        string lockedContent;   // content only available to the owner that could contain stuff like coupons, discounts, etc. 
     }
-    mapping(bytes32 => TokenData) public tokens;
+    mapping(bytes32 => TokenData) tokens;
 
     // returns the creator of the token
     function getCreator(address _tokenAddress, uint256 _id) public view returns (address) {
@@ -66,13 +66,14 @@ contract Engine is Ownable {
         return tokens[keccak256(abi.encodePacked(_tokenAddress, _id))].lockedContent;
     }    
 
+    // Adds the token to the "tokens" table on the marketplace. This is needed is we want to import NFTs created outside of the marketplace
     function addTokenToMarketplace(
         address _tokenAddr,
         uint256 _tokenId,
         uint256 _royalties,
         string memory _lockedContent
     ) public {
-        require(_royalties <= 1000, "Royalties too high"); // you cannot set all royalties + commision. So the limit is 2% for royalties
+        require(_royalties <= 1000, "Royalties too high"); // you cannot set all royalties + commision. So the limit is 10% for royalties
 
         if (tokens[keccak256(abi.encodePacked(_tokenAddr, _tokenId))].creator == address(0)) {
             // save the token data
@@ -85,6 +86,7 @@ contract Engine is Ownable {
         }
     }
 
+    // Creates an offer that could be direct sale and/or auction for a certain amount of a token
     function createOffer(
         address _assetAddress, // address of the token
         uint256 _tokenId, // tokenId
