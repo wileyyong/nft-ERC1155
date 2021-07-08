@@ -179,6 +179,7 @@ contract Engine is Ownable {
 
     // Changes the default commission. Only the owner of the marketplace can do that. In basic points
     function setCommission(uint256 _commission) public onlyOwner {
+        require(_commission <= 5000, "Commission too high");
         commission = _commission;
     }
 
