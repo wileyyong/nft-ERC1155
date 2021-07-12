@@ -231,7 +231,7 @@ contract("Base1155 token", accounts => {
     }
     catch (error) { assert.equal(error.reason, "You are not the winner of the auction"); }
   });
-
+/*
   it("should allow bids on open offers", async function () {
     await engine.bid(4, { from: accounts[1], value: 100000000000000 });   
     var currentBid = await engine.getCurrentBidAmount(4);
@@ -251,7 +251,7 @@ contract("Base1155 token", accounts => {
     await helper.advanceTimeAndBlock(20); // wait 20 seconds in the blockchain
     await engine.claimAsset(4, { from: accounts[1] });    
   });
-
+*/
   it("should not allow bids and claims on closed offers", async function () {
     try {
     await engine.bid(4, { from: accounts[1], value: 100000000000000 }); 

@@ -92,7 +92,7 @@ contract Engine is Ownable {
         uint256 _royalties,
         string memory _lockedContent
     ) public {
-        require(_royalties <= 1000, "Royalties too high"); // you cannot set all royalties + commision. So the limit is 10% for royalties
+        require(_royalties <= 5000, "Royalties too high"); // you cannot set all royalties + commision. So the limit is 50% for royalties
 
         if (
             tokens[keccak256(abi.encodePacked(_tokenAddr, _tokenId))].creator ==
@@ -121,6 +121,7 @@ contract Engine is Ownable {
         uint256 _startPrice, // minimum price on the auction
         uint256 _startTime, // time when the auction will start. Check the format with frontend
         uint256 _duration // duration in seconds of the auction
+        
     ) public returns (uint256) {
         ERC1155 asset = ERC1155(_assetAddress);
         require(
@@ -258,10 +259,13 @@ contract Engine is Ownable {
     // except in the case of the first bid, as could exists a minimum price set by the creator as first bid.
     function bid(uint256 _offerId) public payable {
         Offer storage offer = offers[_offerId];
+        // Fix #5. check auction date.
+        require(isActive(_offerId), "Auction is not active");
         require(offer.creator != address(0));
         require(offer.isAuction == true, "Auction is not active");
         require(offer.amount > 0, "Auction did not have copies on sale");
         require(msg.value > offer.currentBidAmount, "Bid too low");
+       // require(msg.value > offer.minPrice, "Bid lower than minimum price"); // Extra check. Theoretically when creating an offer it sets minprice to 
         // we got a better bid. Return funds to the previous best bidder
         // and register the sender as `currentBidOwner`
 
