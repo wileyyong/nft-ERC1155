@@ -98,7 +98,7 @@ contract Engine is Ownable {
         string memory _lockedContent
     ) public {
         require(_royalties <= 5000, "Royalties too high"); // you cannot set all royalties + commision. So the limit is 50% for royalties
-
+        // Issue #12 anyone to record the new token data and become that token’s creator and royalty beneficiator.
         if (
             tokens[keccak256(abi.encodePacked(_tokenAddr, _tokenId))].creator ==
             address(0)
@@ -196,6 +196,15 @@ contract Engine is Ownable {
         require(offer.isOnSale == true, "NFT not in direct sale");
         uint256 price = offer.price;
         require(paidPrice >= price, "Price is not enough");
+        // issue 11. race condition with claimAsset. Fix is that if there is a bid and the auction is closed but not claimed, give priority to claim
+        require(
+            !(offer.amount == 1 &&
+                offer.isAuction == true &&
+                isFinished(_offerId) &&
+                offer.currentBidAmount != 0 &&
+                offer.currentBidOwner != address(0)),
+            "Claim asset from auction has priority"
+        );
 
         emit Claim(_offerId, buyer);
         ERC1155 asset = ERC1155(offer.assetAddress);
@@ -219,12 +228,19 @@ contract Engine is Ownable {
             royaltiesToPay =
                 (paidPrice * getRoyalties(offer.assetAddress, _offerId)) /
                 10000;
-            creatorNFT.transfer(royaltiesToPay);
+            //creatorNFT.transfer(royaltiesToPay);
+            //issue #16. dont use transfer
+            (bool success, ) = creatorNFT.call{value: royaltiesToPay}("");
+            require(success, "Transfer failed.");
+
             emit Royalties(creatorNFT, royaltiesToPay);
         }
         uint256 amountToPay = paidPrice - commissionToPay - royaltiesToPay;
 
-        offer.creator.transfer(amountToPay);
+        //offer.creator.transfer(amountToPay);
+        //issue #16. dont use transfer
+        (bool success2, ) = offer.creator.call{value: amountToPay}("");
+        require(success2, "Transfer failed.");
         emit PaymentToOwner(
             offer.creator,
             amountToPay,
@@ -248,7 +264,12 @@ contract Engine is Ownable {
                     offer.currentBidOwner != address(0)
                 ) {
                     // return funds to the previuos bidder
-                    offer.currentBidOwner.transfer(offer.currentBidAmount);
+                    //offer.currentBidOwner.transfer(offer.currentBidAmount);
+                    //issue #16. dont use transfer
+                    (bool success3, ) = offer.currentBidOwner.call{
+                        value: offer.currentBidAmount
+                    }("");
+                    require(success3, "Transfer failed.");
                     emit ReturnBidFunds(
                         _offerId,
                         offer.currentBidOwner,
@@ -285,7 +306,12 @@ contract Engine is Ownable {
             offer.currentBidOwner != offer.creator
         ) {
             // return funds to the previuos bidder
-            offer.currentBidOwner.transfer(offer.currentBidAmount);
+            //offer.currentBidOwner.transfer(offer.currentBidAmount);
+             //issue #16. dont use transfer
+                    (bool success, ) = offer.currentBidOwner.call{
+                        value: offer.currentBidAmount
+                    }("");
+                    require(success, "Transfer failed.");
             emit ReturnBidFunds(
                 _offerId,
                 offer.currentBidOwner,
@@ -359,11 +385,18 @@ contract Engine is Ownable {
         // the token could be sold in direct sale or the owner cancelled the auction
         require(offer.isAuction == true, "NFT not in auction");
 
-        /*    // #3, check if the asset owner had removed their approval or the offer creator is not the token owner anymore.
         ERC1155 asset = ERC1155(offer.assetAddress);
-        require(asset.isApprovalForAll(offer.creator, address(this)), "NFT not approved");*/
 
-        ERC1155 asset = ERC1155(offer.assetAddress);
+        // #3, check if the asset owner had removed their approval or the offer creator is not the token owner anymore.
+        require(
+            asset.balanceOf(offer.creator, offer.tokenId) >= offer.amount,
+            "Owner did not have enough tokens"
+        );
+        require(
+            asset.isApprovedForAll(offer.creator, address(this)),
+            "NFT not approved"
+        );
+
         asset.safeTransferFrom(
             offer.creator,
             msg.sender,
@@ -386,14 +419,24 @@ contract Engine is Ownable {
                 (offer.currentBidAmount *
                     getRoyalties(offer.assetAddress, offer.tokenId)) /
                 10000;
-            creatorNFT.transfer(royaltiesToPay);
+            //creatorNFT.transfer(royaltiesToPay);
+            //issue #16. dont use transfer
+                (bool success1, ) = creatorNFT.call{
+                    value: royaltiesToPay
+                }("");
+                require(success1, "Transfer failed.");
             emit Royalties(creatorNFT, royaltiesToPay);
         }
         uint256 amountToPay = offer.currentBidAmount -
             commissionToPay -
             royaltiesToPay;
 
-        offer.creator.transfer(amountToPay);
+        //offer.creator.transfer(amountToPay);
+        //issue #16. dont use transfer
+                (bool success, ) = offer.creator.call{
+                    value: amountToPay
+                }("");
+                require(success, "Transfer failed.");
         emit PaymentToOwner(
             offer.creator,
             amountToPay,
@@ -421,26 +464,45 @@ contract Engine is Ownable {
     /* DANGER. The owner should call this method when a bidder wins an auction but did not claim the tokens
  if this happens, the auction is blocked and the rest of the copies on the offer could not be sold
  This method clears the offer and behaves as if the winned had claimed the nft.
- After calling this method the funds are in the smart contract wallet. So a manual transfer of royalties
- and funds should be made, along with the NFT, to the corresponding users.
  */
     function forceAuctionEnding(uint256 _offerId) public onlyOwner {
         Offer storage offer = offers[_offerId];
         if (offer.amount == 1) {
-            offer.isAuction = false;
-            offer.isOnSale = false;
+            if (
+                offer.currentBidAmount != 0 &&
+                offer.currentBidOwner != address(0)
+            ) {
+                // return funds to the previuos bidder, if there is a previous bid
+                //offer.currentBidOwner.transfer(offer.currentBidAmount);
+                //issue #16. dont use transfer
+                (bool success, ) = offer.currentBidOwner.call{
+                    value: offer.currentBidAmount
+                }("");
+                require(success, "Transfer failed.");
+                //issue #16. dont use transfer
+                emit ReturnBidFunds(
+                    _offerId,
+                    offer.currentBidOwner,
+                    offer.currentBidAmount
+                );
+            }
         } else {
             offer.currentBidOwner = payable(0);
             offer.currentBidAmount = 0;
         }
 
-        offer.amount = offer.amount.sub(1);
+        offer.isAuction = false;
+
+        offer.amount = offer.amount.add(1);
         offers[_offerId] = offer;
     }
 
     function extractBalance() public onlyOwner {
         address payable me = payable(msg.sender);
-        me.transfer(accumulatedCommission);
+        //me.transfer(accumulatedCommission);
+        //issue #16. dont use transfer
+        (bool success, ) = me.call{value: accumulatedCommission}("");
+        require(success, "Transfer failed.");
         accumulatedCommission = 0;
     }
 }
