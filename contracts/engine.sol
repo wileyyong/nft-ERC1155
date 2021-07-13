@@ -3,10 +3,11 @@ pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-//import "./Base1155.sol";
+import "./Base1155.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-contract Engine is Ownable {
+contract Engine is Ownable, ReentrancyGuard {
     using SafeMath for uint256;
 
     event OfferCreated(
@@ -23,7 +24,7 @@ contract Engine is Ownable {
     event PaymentToOwner(
         address receiver,
         uint256 amount,
-        uint256 paidByCustomer,
+     //   uint256 paidByCustomer,
         uint256 commission,
         uint256 royalties,
         uint256 safetyCheckValue
@@ -98,7 +99,10 @@ contract Engine is Ownable {
         string memory _lockedContent
     ) public {
         require(_royalties <= 5000, "Royalties too high"); // you cannot set all royalties + commision. So the limit is 50% for royalties
-        // Issue #12 anyone to record the new token data and become that token’s creator and royalty beneficiator.
+        // Issue #12 anyone to record the new token data and become that token’s creator and royalty beneficiator.        
+        Base1155 asset = Base1155(_tokenAddr);
+        require(asset.getCreator(_tokenId) == msg.sender, "Not nft creator");
+
         if (
             tokens[keccak256(abi.encodePacked(_tokenAddr, _tokenId))].creator ==
             address(0)
@@ -188,7 +192,12 @@ contract Engine is Ownable {
         commission = _commission;
     }
 
-    function buy(uint256 _offerId) external payable {
+    function calcSafetyCheckValue(uint256 _amountToPay, uint256 _paidPrice, uint256 _commission) internal pure returns (uint256)
+    {
+         uint256 result = _amountToPay + ((_paidPrice * _commission) / 10000);
+         return result;
+    }
+    function buy(uint256 _offerId) external payable nonReentrant {
         address buyer = msg.sender;
         uint256 paidPrice = msg.value;
 
@@ -244,10 +253,11 @@ contract Engine is Ownable {
         emit PaymentToOwner(
             offer.creator,
             amountToPay,
-            paidPrice,
+          //  paidPrice,
             commissionToPay,
             royaltiesToPay,
-            amountToPay + ((paidPrice * commission) / 10000)
+            calcSafetyCheckValue(amountToPay, paidPrice, commission)
+            //amountToPay + ((paidPrice * commission) / 10000)
         );
 
         accumulatedCommission += commissionToPay;
@@ -288,7 +298,7 @@ contract Engine is Ownable {
 
     // At the end of the call, the amount is saved on the marketplace wallet and the previous bid amount is returned to old bidder
     // except in the case of the first bid, as could exists a minimum price set by the creator as first bid.
-    function bid(uint256 _offerId) public payable {
+    function bid(uint256 _offerId) public payable nonReentrant {
         Offer storage offer = offers[_offerId];
         // Fix #5. check auction date.
         require(isActive(_offerId), "Auction is not active");
@@ -375,7 +385,7 @@ contract Engine is Ownable {
         return offers[_offerId].currentBidOwner;
     }
 
-    function claimAsset(uint256 _offerId) public {
+    function claimAsset(uint256 _offerId) public nonReentrant {
         require(isFinished(_offerId), "The auction is still active");
         Offer storage offer = offers[_offerId];
 
@@ -440,7 +450,7 @@ contract Engine is Ownable {
         emit PaymentToOwner(
             offer.creator,
             amountToPay,
-            offer.currentBidAmount,
+       //     offer.currentBidAmount,
             commissionToPay,
             royaltiesToPay,
             amountToPay + commissionToPay + royaltiesToPay
@@ -465,7 +475,7 @@ contract Engine is Ownable {
  if this happens, the auction is blocked and the rest of the copies on the offer could not be sold
  This method clears the offer and behaves as if the winned had claimed the nft.
  */
-    function forceAuctionEnding(uint256 _offerId) public onlyOwner {
+    function forceAuctionEnding(uint256 _offerId) public onlyOwner nonReentrant {
         Offer storage offer = offers[_offerId];
         if (offer.amount == 1) {
             if (
@@ -497,7 +507,7 @@ contract Engine is Ownable {
         offers[_offerId] = offer;
     }
 
-    function extractBalance() public onlyOwner {
+    function extractBalance() public onlyOwner nonReentrant {
         address payable me = payable(msg.sender);
         //me.transfer(accumulatedCommission);
         //issue #16. dont use transfer

@@ -25,16 +25,28 @@ contract("Base1155 token", accounts => {
     assert.notEqual(tokenId, null);
   });
 
-  it("Should create nft", async () => {
+  /* it("Should create nft", async () => {
+     var createItemResponse = await instance.createItem(10, { from: artist });
+     assert.equal(createItemResponse.receipt.logs[0].args.id, 1);
+   });
+ 
+   it("Should fail adding to the marketplace if the user is not the creator", async () => {
+     try {
+       engine.addTokenToMarketplace(instance.address, 1, 200, "", { from: winner });
+     }
+     catch (error) { assert.equal(error.reason, "Not nft creator"); }
+   });
+ */
+  it("Should add to the marketplace if the user is the creator", async () => {
     var createItemResponse = await instance.createItem(10, { from: artist });
-    engine.addTokenToMarketplace(instance.address, 1, 200, "");
+    engine.addTokenToMarketplace(instance.address, 1, 200, "", { from: artist });
     //  console.log("The tokenId is = " + JSON.stringify(tokenId));
     assert.equal(createItemResponse.receipt.logs[0].args.id, 1);
   });
 
   it("Should create 2nd nft", async () => {
     var createItemResponse = await instance.createItem(30, { from: artist });
-    engine.addTokenToMarketplace(instance.address, 2, 300, "secretCode");
+    engine.addTokenToMarketplace(instance.address, 2, 300, "secretCode", { from: artist });
     //   console.log("The tokenId is = " + JSON.stringify(createItemResponse.receipt.logs[0].args.id));
     assert.equal(createItemResponse.receipt.logs[0].args.id, 2);
   });
@@ -119,11 +131,11 @@ contract("Base1155 token", accounts => {
   });
 
   it("should let buy from offer even after some tokens has already been bought", async function () {
-    let offer = await engine.offers(2); 
-  //  console.log(JSON.stringify(offer));
+    let offer = await engine.offers(2);
+    //  console.log(JSON.stringify(offer));
     console.log("There are " + offer.amount + " items available on offer #2");
     await engine.buy(2, { from: secondBuyer, value: 15000 });
-    offer = await engine.offers(2); 
+    offer = await engine.offers(2);
     console.log("There are " + offer.amount + " items available on offer #2");
   });
 
@@ -218,7 +230,7 @@ contract("Base1155 token", accounts => {
     console.log("Balance contract before claiming = " + web3.utils.fromWei(balance, 'ether'));
 
     let offer = await engine.offers(4);
-    
+
     await engine.claimAsset(4, { from: accounts[9] });
 
     balance = await web3.eth.getBalance(engine.address);
@@ -231,32 +243,32 @@ contract("Base1155 token", accounts => {
     }
     catch (error) { assert.equal(error.reason, "You are not the winner of the auction"); }
   });
-/*
-  it("should allow bids on open offers", async function () {
-    await engine.bid(4, { from: accounts[1], value: 100000000000000 });   
-    var currentBid = await engine.getCurrentBidAmount(4);
-    console.log("Current bid = " + currentBid);
-    assert.equal(currentBid, 100000000000000);
-  });
-
-  it("should allow bids and claims on open offers", async function () {
-    await helper.advanceTimeAndBlock(20); // wait 20 seconds in the blockchain
-    await engine.claimAsset(4, { from: accounts[1] });    
-    
-    await engine.bid(4, { from: accounts[1], value: 100000000000000 }); 
-    await helper.advanceTimeAndBlock(20); // wait 20 seconds in the blockchain
-    await engine.claimAsset(4, { from: accounts[1] });    
+  /*
+    it("should allow bids on open offers", async function () {
+      await engine.bid(4, { from: accounts[1], value: 100000000000000 });   
+      var currentBid = await engine.getCurrentBidAmount(4);
+      console.log("Current bid = " + currentBid);
+      assert.equal(currentBid, 100000000000000);
+    });
+  
+    it("should allow bids and claims on open offers", async function () {
+      await helper.advanceTimeAndBlock(20); // wait 20 seconds in the blockchain
+      await engine.claimAsset(4, { from: accounts[1] });    
       
-    await engine.bid(4, { from: accounts[1], value: 100000000000000 }); 
-    await helper.advanceTimeAndBlock(20); // wait 20 seconds in the blockchain
-    await engine.claimAsset(4, { from: accounts[1] });    
-  });
-*/
+      await engine.bid(4, { from: accounts[1], value: 100000000000000 }); 
+      await helper.advanceTimeAndBlock(20); // wait 20 seconds in the blockchain
+      await engine.claimAsset(4, { from: accounts[1] });    
+        
+      await engine.bid(4, { from: accounts[1], value: 100000000000000 }); 
+      await helper.advanceTimeAndBlock(20); // wait 20 seconds in the blockchain
+      await engine.claimAsset(4, { from: accounts[1] });    
+    });
+  */
   it("should not allow bids and claims on closed offers", async function () {
     try {
-    await engine.bid(4, { from: accounts[1], value: 100000000000000 }); 
-    await helper.advanceTimeAndBlock(20); // wait 20 seconds in the blockchain
-    await engine.claimAsset(4, { from: accounts[1] }); 
+      await engine.bid(4, { from: accounts[1], value: 100000000000000 });
+      await helper.advanceTimeAndBlock(20); // wait 20 seconds in the blockchain
+      await engine.claimAsset(4, { from: accounts[1] });
     }
     catch (error) { assert.equal(error.reason, "Auction is not active"); }
   });
@@ -266,7 +278,7 @@ contract("Base1155 token", accounts => {
     let value = await engine.extractBalance({ from: accounts[8] });
     let userBalanceA = await web3.eth.getBalance(accounts[8]);
     console.log("Balance before " + userBalanceB + " after " + userBalanceA);
-  });  
+  });
 
   it("calc of gas for minting", async function () {
     let ahora = await engine.ahora();
@@ -277,7 +289,7 @@ contract("Base1155 token", accounts => {
     //   console.log(`GasUsed: ${receipt.receipt.gasUsed}`);
     gasUsed += receipt.receipt.gasUsed;
 
-    receipt = await engine.addTokenToMarketplace(instance.address, 3, 200, "");
+    receipt = await engine.addTokenToMarketplace(instance.address, 3, 200, "", { from: artist });
     //   console.log(`GasUsed: ${receipt.receipt.gasUsed}`);
     gasUsed += receipt.receipt.gasUsed;
 
@@ -286,6 +298,15 @@ contract("Base1155 token", accounts => {
     gasUsed += receipt.receipt.gasUsed;
     console.log(`Total GasUsed on create: ${gasUsed}`);
   });
-  
+
+  it("should fail if a person who is not the owner tries to add to the marketplace the token", async function () {
+    var receipt = await instance.createItem(10, { from: artist });
+    receipt = await instance.setApprovalForAll(engine.address, true, { from: artist });
+    try {
+      receipt = await engine.addTokenToMarketplace(instance.address, 4, 200, "", { from: winner });
+    } catch (error) { assert.equal(error.reason, "Not nft creator"); }
+  });
+
 });
+
 
