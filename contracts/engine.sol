@@ -9,7 +9,12 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 contract Engine is Ownable {
     using SafeMath for uint256;
 
-    event OfferCreated(uint256 _index, address _creator, address _asset, uint256 _tokenId);
+    event OfferCreated(
+        uint256 _index,
+        address _creator,
+        address _asset,
+        uint256 _tokenId
+    );
     event AuctionBid(uint256 _index, address _bidder, uint256 amount);
     event Claim(uint256 auctionIndex, address claimer);
     event ReturnBidFunds(uint256 _index, address _bidder, uint256 amount);
@@ -121,7 +126,6 @@ contract Engine is Ownable {
         uint256 _startPrice, // minimum price on the auction
         uint256 _startTime, // time when the auction will start. Check the format with frontend
         uint256 _duration // duration in seconds of the auction
-        
     ) public returns (uint256) {
         ERC1155 asset = ERC1155(_assetAddress);
         require(
@@ -230,23 +234,29 @@ contract Engine is Ownable {
             amountToPay + ((paidPrice * commission) / 10000)
         );
 
-        // is there is an auction open, we have to give back the last bid amount to the last bidder
-        if (offer.isAuction == true) {
-            if (offer.currentBidAmount != 0) {
-                // return funds to the previuos bidder
-                offer.currentBidOwner.transfer(offer.currentBidAmount);
-                emit ReturnBidFunds(
-                    _offerId,
-                    offer.currentBidOwner,
-                    offer.currentBidAmount
-                );
-            }
-        }
-
         accumulatedCommission += commissionToPay;
 
         // if there are no items left in the offer close the offer. Otherwise subtract 1 to the offer amount of tokens for sale
         if (offer.amount == 1) {
+            // is there is an auction open, we have to give back the last bid amount to the last bidder
+            if (offer.isAuction == true) {
+                // Fix issue #4
+                // this check is for not transferring back funds on the first bid, as the fist bid is the minimum price set by the auction creator
+                // and the bid owner is address(0)
+                if (
+                    offer.currentBidAmount != 0 &&
+                    offer.currentBidOwner != address(0)
+                ) {
+                    // return funds to the previuos bidder
+                    offer.currentBidOwner.transfer(offer.currentBidAmount);
+                    emit ReturnBidFunds(
+                        _offerId,
+                        offer.currentBidOwner,
+                        offer.currentBidAmount
+                    );
+                }
+            }
+
             offer.isAuction = false;
             offer.isOnSale = false;
         }
@@ -265,7 +275,7 @@ contract Engine is Ownable {
         require(offer.isAuction == true, "Auction is not active");
         require(offer.amount > 0, "Auction did not have copies on sale");
         require(msg.value > offer.currentBidAmount, "Bid too low");
-       // require(msg.value > offer.minPrice, "Bid lower than minimum price"); // Extra check. Theoretically when creating an offer it sets minprice to 
+        // require(msg.value > offer.minPrice, "Bid lower than minimum price"); // Extra check. Theoretically when creating an offer it sets minprice to
         // we got a better bid. Return funds to the previous best bidder
         // and register the sender as `currentBidOwner`
 
@@ -349,6 +359,10 @@ contract Engine is Ownable {
         // the token could be sold in direct sale or the owner cancelled the auction
         require(offer.isAuction == true, "NFT not in auction");
 
+        /*    // #3, check if the asset owner had removed their approval or the offer creator is not the token owner anymore.
+        ERC1155 asset = ERC1155(offer.assetAddress);
+        require(asset.isApprovalForAll(offer.creator, address(this)), "NFT not approved");*/
+
         ERC1155 asset = ERC1155(offer.assetAddress);
         asset.safeTransferFrom(
             offer.creator,
@@ -400,11 +414,11 @@ contract Engine is Ownable {
             offer.currentBidAmount = 0;
         }
 
-        offer.amount = offer.amount.sub(1);           
+        offer.amount = offer.amount.sub(1);
         offers[_offerId] = offer;
     }
 
-/* DANGER. The owner should call this method when a bidder wins an auction but did not claim the tokens
+    /* DANGER. The owner should call this method when a bidder wins an auction but did not claim the tokens
  if this happens, the auction is blocked and the rest of the copies on the offer could not be sold
  This method clears the offer and behaves as if the winned had claimed the nft.
  After calling this method the funds are in the smart contract wallet. So a manual transfer of royalties
@@ -420,7 +434,7 @@ contract Engine is Ownable {
             offer.currentBidAmount = 0;
         }
 
-        offer.amount = offer.amount.sub(1);           
+        offer.amount = offer.amount.sub(1);
         offers[_offerId] = offer;
     }
 
