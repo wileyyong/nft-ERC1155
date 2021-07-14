@@ -306,7 +306,7 @@ contract Engine is Ownable, ReentrancyGuard {
         // this check is for not transferring back funds on the first bid, as the fist bid is the minimum price set by the auction creator
         if (
             offer.currentBidAmount != 0 &&
-            offer.currentBidOwner != offer.creator
+            offer.currentBidOwner != address(0)
         ) {
             // return funds to the previuos bidder
                     (bool success, ) = offer.currentBidOwner.call{
