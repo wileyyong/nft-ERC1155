@@ -458,7 +458,7 @@ contract Engine is Ownable, ReentrancyGuard {
         offers[_offerId] = offer;
     }
 
-    /* DANGER. The owner should call this method when a bidder wins an auction but did not claim the tokens
+    /* The owner should call this method to cancel an auction on an offer
     This will cancel the auction and let the copy be sold using direct sale. If the auction has bids, it
     will return the bidded amount to the bidder before closing the auction
  */
