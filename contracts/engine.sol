@@ -99,7 +99,7 @@ contract Engine is Ownable, ReentrancyGuard {
         string memory _lockedContent
     ) public {
         require(_royalties <= 5000, "Royalties too high"); // you cannot set all royalties + commision. So the limit is 50% for royalties
-        // Issue #12 anyone to record the new token data and become that token’s creator and royalty beneficiator.        
+        //  Check only the creator (artist) can call this method.        
         Base1155 asset = Base1155(_tokenAddr);
         require(asset.getCreator(_tokenId) == msg.sender, "Not nft creator");
 
@@ -205,7 +205,7 @@ contract Engine is Ownable, ReentrancyGuard {
         require(offer.isOnSale == true, "NFT not in direct sale");
         uint256 price = offer.price;
         require(paidPrice >= price, "Price is not enough");
-        // issue 11. race condition with claimAsset. Fix is that if there is a bid and the auction is closed but not claimed, give priority to claim
+        //  if there is a bid and the auction is closed but not claimed, give priority to claim
         require(
             !(offer.amount == 1 &&
                 offer.isAuction == true &&
@@ -237,8 +237,6 @@ contract Engine is Ownable, ReentrancyGuard {
             royaltiesToPay =
                 (paidPrice * getRoyalties(offer.assetAddress, _offerId)) /
                 10000;
-            //creatorNFT.transfer(royaltiesToPay);
-            //issue #16. dont use transfer
             (bool success, ) = creatorNFT.call{value: royaltiesToPay}("");
             require(success, "Transfer failed.");
 
@@ -246,8 +244,6 @@ contract Engine is Ownable, ReentrancyGuard {
         }
         uint256 amountToPay = paidPrice - commissionToPay - royaltiesToPay;
 
-        //offer.creator.transfer(amountToPay);
-        //issue #16. dont use transfer
         (bool success2, ) = offer.creator.call{value: amountToPay}("");
         require(success2, "Transfer failed.");
         emit PaymentToOwner(
@@ -266,7 +262,6 @@ contract Engine is Ownable, ReentrancyGuard {
         if (offer.amount == 1) {
             // is there is an auction open, we have to give back the last bid amount to the last bidder
             if (offer.isAuction == true) {
-                // Fix issue #4
                 // this check is for not transferring back funds on the first bid, as the fist bid is the minimum price set by the auction creator
                 // and the bid owner is address(0)
                 if (
@@ -274,8 +269,6 @@ contract Engine is Ownable, ReentrancyGuard {
                     offer.currentBidOwner != address(0)
                 ) {
                     // return funds to the previuos bidder
-                    //offer.currentBidOwner.transfer(offer.currentBidAmount);
-                    //issue #16. dont use transfer
                     (bool success3, ) = offer.currentBidOwner.call{
                         value: offer.currentBidAmount
                     }("");
@@ -316,8 +309,6 @@ contract Engine is Ownable, ReentrancyGuard {
             offer.currentBidOwner != offer.creator
         ) {
             // return funds to the previuos bidder
-            //offer.currentBidOwner.transfer(offer.currentBidAmount);
-             //issue #16. dont use transfer
                     (bool success, ) = offer.currentBidOwner.call{
                         value: offer.currentBidAmount
                     }("");
@@ -429,8 +420,6 @@ contract Engine is Ownable, ReentrancyGuard {
                 (offer.currentBidAmount *
                     getRoyalties(offer.assetAddress, offer.tokenId)) /
                 10000;
-            //creatorNFT.transfer(royaltiesToPay);
-            //issue #16. dont use transfer
                 (bool success1, ) = creatorNFT.call{
                     value: royaltiesToPay
                 }("");
@@ -441,8 +430,6 @@ contract Engine is Ownable, ReentrancyGuard {
             commissionToPay -
             royaltiesToPay;
 
-        //offer.creator.transfer(amountToPay);
-        //issue #16. dont use transfer
                 (bool success, ) = offer.creator.call{
                     value: amountToPay
                 }("");
@@ -472,8 +459,8 @@ contract Engine is Ownable, ReentrancyGuard {
     }
 
     /* DANGER. The owner should call this method when a bidder wins an auction but did not claim the tokens
- if this happens, the auction is blocked and the rest of the copies on the offer could not be sold
- This method clears the offer and behaves as if the winned had claimed the nft.
+    This will cancel the auction and let the copy be sold using direct sale. If the auction has bids, it
+    will return the bidded amount to the bidder before closing the auction
  */
     function forceAuctionEnding(uint256 _offerId) public onlyOwner nonReentrant {
         Offer storage offer = offers[_offerId];
@@ -483,13 +470,10 @@ contract Engine is Ownable, ReentrancyGuard {
                 offer.currentBidOwner != address(0)
             ) {
                 // return funds to the previuos bidder, if there is a previous bid
-                //offer.currentBidOwner.transfer(offer.currentBidAmount);
-                //issue #16. dont use transfer
                 (bool success, ) = offer.currentBidOwner.call{
                     value: offer.currentBidAmount
                 }("");
                 require(success, "Transfer failed.");
-                //issue #16. dont use transfer
                 emit ReturnBidFunds(
                     _offerId,
                     offer.currentBidOwner,
@@ -509,8 +493,6 @@ contract Engine is Ownable, ReentrancyGuard {
 
     function extractBalance() public onlyOwner nonReentrant {
         address payable me = payable(msg.sender);
-        //me.transfer(accumulatedCommission);
-        //issue #16. dont use transfer
         (bool success, ) = me.call{value: accumulatedCommission}("");
         require(success, "Transfer failed.");
         accumulatedCommission = 0;
