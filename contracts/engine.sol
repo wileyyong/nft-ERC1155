@@ -13,7 +13,6 @@ contract Engine is Ownable, ReentrancyGuard {
     event OfferCreated(
         uint256 _index,
         address _creator,
-        address _asset,
         uint256 _tokenId
     );
     event AuctionBid(uint256 _index, address _bidder, uint256 amount);
@@ -39,7 +38,7 @@ contract Engine is Ownable, ReentrancyGuard {
         finished
     }
     struct Offer {
-        address assetAddress; // address of the token
+        address tokenAddress; // address of the token
         uint256 tokenId; // the tokenId returned when calling "createItem"
         uint256 amount; // amount of tokens on sale on this offer
         address payable creator; // who creates the offer
@@ -54,17 +53,8 @@ contract Engine is Ownable, ReentrancyGuard {
     }
     Offer[] public offers;
 
-    // Data of each token
-    struct TokenData {
-        address tokenAddr; // address of each token. Because the system will support several ERC1155 tokens and not only ours
-        address creator; // creator/artist. Needed for knowing who will receive the royalties
-        uint256 royalties; // royalties in basic points (so a 2% is 200, a 1.5% is 150, etc.)
-        string lockedContent; // content only available to the owner that could contain stuff like coupons, discounts, etc.
-    }
-    mapping(bytes32 => TokenData) tokens;
-
     // returns the creator of the token
-    function getCreator(address _tokenAddress, uint256 _id)
+ /*   function getCreator(address _tokenAddress, uint256 _id)
         public
         view
         returns (address)
@@ -90,9 +80,9 @@ contract Engine is Ownable, ReentrancyGuard {
             tokens[keccak256(abi.encodePacked(_tokenAddress, _id))]
                 .lockedContent;
     }
-
+*/
     // Adds the token to the "tokens" table on the marketplace. This is needed is we want to import NFTs created outside of the marketplace
-    function addTokenToMarketplace(
+ /*   function addTokenToMarketplace(
         address _tokenAddr,
         uint256 _tokenId,
         uint256 _royalties,
@@ -118,10 +108,10 @@ contract Engine is Ownable, ReentrancyGuard {
             });
         }
     }
-
+*/
     // Creates an offer that could be direct sale and/or auction for a certain amount of a token
     function createOffer(
-        address _assetAddress, // address of the token
+        address _tokenAddress,
         uint256 _tokenId, // tokenId
         uint256 _amount,
         bool _isDirectSale, // true if can be bought on a direct sale
@@ -131,14 +121,14 @@ contract Engine is Ownable, ReentrancyGuard {
         uint256 _startTime, // time when the auction will start. Check the format with frontend
         uint256 _duration // duration in seconds of the auction
     ) public returns (uint256) {
-        ERC1155 asset = ERC1155(_assetAddress);
+        Base1155 asset = Base1155(_tokenAddress);
         require(
             asset.balanceOf(msg.sender, _tokenId) >= _amount,
             "You are trying to sale more nfts that the ones you have"
         );
 
         Offer memory offer = Offer({
-            assetAddress: _assetAddress,
+            tokenAddress: _tokenAddress,
             tokenId: _tokenId,
             amount: _amount,
             creator: payable(msg.sender),
@@ -154,7 +144,7 @@ contract Engine is Ownable, ReentrancyGuard {
         offers.push(offer);
         uint256 index = offers.length - 1;
 
-        emit OfferCreated(index, msg.sender, _assetAddress, _tokenId);
+        emit OfferCreated(index, msg.sender, _tokenId);
         return index;
     }
 
@@ -216,7 +206,7 @@ contract Engine is Ownable, ReentrancyGuard {
         );
 
         emit Claim(_offerId, buyer);
-        ERC1155 asset = ERC1155(offer.assetAddress);
+        Base1155 asset = Base1155(offer.tokenAddress);
         asset.safeTransferFrom(
             offer.creator,
             msg.sender,
@@ -227,7 +217,8 @@ contract Engine is Ownable, ReentrancyGuard {
 
         // now, pay the amount - commission - royalties to the auction creator
         address payable creatorNFT = payable(
-            getCreator(offer.assetAddress, _offerId)
+           // getCreator(offer.assetAddress, _offerId)
+           asset.getCreator(offer.tokenId)
         );
 
         uint256 commissionToPay = (paidPrice * commission) / 10000;
@@ -235,7 +226,7 @@ contract Engine is Ownable, ReentrancyGuard {
         if (creatorNFT != offer.creator) {
             // It is a resale. Transfer royalties
             royaltiesToPay =
-                (paidPrice * getRoyalties(offer.assetAddress, _offerId)) /
+                (paidPrice *  asset.getRoyalties(offer.tokenId) /*getRoyalties(offer.assetAddress, _offerId)*/) /
                 10000;
             (bool success, ) = creatorNFT.call{value: royaltiesToPay}("");
             require(success, "Transfer failed.");
@@ -386,7 +377,7 @@ contract Engine is Ownable, ReentrancyGuard {
         // the token could be sold in direct sale or the owner cancelled the auction
         require(offer.isAuction == true, "NFT not in auction");
 
-        ERC1155 asset = ERC1155(offer.assetAddress);
+        Base1155 asset = Base1155(offer.tokenAddress);
 
         // #3, check if the asset owner had removed their approval or the offer creator is not the token owner anymore.
         require(
@@ -410,7 +401,8 @@ contract Engine is Ownable, ReentrancyGuard {
 
         // now, pay the amount - commission - royalties to the auction creator
         address payable creatorNFT = payable(
-            getCreator(offer.assetAddress, offer.tokenId)
+            //getCreator(offer.assetAddress, offer.tokenId)
+            asset.getCreator(offer.tokenId)
         );
         uint256 commissionToPay = (offer.currentBidAmount * commission) / 10000;
         uint256 royaltiesToPay = 0;
@@ -418,7 +410,7 @@ contract Engine is Ownable, ReentrancyGuard {
             // It is a resale. Transfer royalties
             royaltiesToPay =
                 (offer.currentBidAmount *
-                    getRoyalties(offer.assetAddress, offer.tokenId)) /
+                    asset.getRoyalties(offer.tokenId) /*getRoyalties(offer.assetAddress, offer.tokenId)*/) /
                 10000;
                 (bool success1, ) = creatorNFT.call{
                     value: royaltiesToPay

@@ -25,31 +25,34 @@ contract("Base1155 token", accounts => {
     assert.notEqual(tokenId, null);
   });
 
-  /* it("Should create nft", async () => {
-     var createItemResponse = await instance.createItem(10, { from: artist });
-     assert.equal(createItemResponse.receipt.logs[0].args.id, 1);
-   });
- 
-   it("Should fail adding to the marketplace if the user is not the creator", async () => {
-     try {
-       engine.addTokenToMarketplace(instance.address, 1, 200, "", { from: winner });
-     }
-     catch (error) { assert.equal(error.reason, "Not nft creator"); }
-   });
- */
-  it("Should add to the marketplace if the user is the creator", async () => {
+  
+ /* it("Should add to the marketplace if the user is the creator", async () => {
     var createItemResponse = await instance.createItem(10, { from: artist });
     engine.addTokenToMarketplace(instance.address, 1, 200, "", { from: artist });
     //  console.log("The tokenId is = " + JSON.stringify(tokenId));
     assert.equal(createItemResponse.receipt.logs[0].args.id, 1);
   });
+*/
 
-  it("Should create 2nd nft", async () => {
+it("Should add to the marketplace if the user is the creator", async () => {
+  var createItemResponse = await instance.createItem(10, 200, "", { from: artist });
+  //  console.log("The tokenId is = " + JSON.stringify(tokenId));
+  assert.equal(createItemResponse.receipt.logs[0].args.id, 1);
+});
+
+ /* it("Should create 2nd nft", async () => {
     var createItemResponse = await instance.createItem(30, { from: artist });
     engine.addTokenToMarketplace(instance.address, 2, 300, "secretCode", { from: artist });
     //   console.log("The tokenId is = " + JSON.stringify(createItemResponse.receipt.logs[0].args.id));
     assert.equal(createItemResponse.receipt.logs[0].args.id, 2);
   });
+*/
+
+it("Should create 2nd nft", async () => {
+  var createItemResponse = await instance.createItem(30, 300, "secretCode",{ from: artist });
+  assert.equal(createItemResponse.receipt.logs[0].args.id, 2);
+});
+
 
   it("Should show URL", async () => {
     const url2 = await instance.uri(2);
@@ -282,16 +285,16 @@ contract("Base1155 token", accounts => {
 
   it("calc of gas for minting", async function () {
     let ahora = await engine.ahora();
-    var receipt = await instance.createItem(10, { from: artist });
+    var receipt = await instance.createItem(10, 200, "",{ from: artist });
     let gasUsed = receipt.receipt.gasUsed;
     //   console.log(`GasUsed: ${receipt.receipt.gasUsed}`);
     receipt = await instance.setApprovalForAll(engine.address, true, { from: artist });
     //   console.log(`GasUsed: ${receipt.receipt.gasUsed}`);
     gasUsed += receipt.receipt.gasUsed;
 
-    receipt = await engine.addTokenToMarketplace(instance.address, 3, 200, "", { from: artist });
+    //receipt = await engine.addTokenToMarketplace(instance.address, 3, 200, "", { from: artist });
     //   console.log(`GasUsed: ${receipt.receipt.gasUsed}`);
-    gasUsed += receipt.receipt.gasUsed;
+    //gasUsed += receipt.receipt.gasUsed;
 
     receipt = await engine.createOffer(instance.address, 3, 2, true, true, 100000000000, 0, ahora, 10, { from: artist });
     //   console.log(`GasUsed: ${receipt.receipt.gasUsed}`);
@@ -300,10 +303,10 @@ contract("Base1155 token", accounts => {
   });
 
   it("should fail if a person who is not the owner tries to add to the marketplace the token", async function () {
-    var receipt = await instance.createItem(10, { from: artist });
+    var receipt = await instance.createItem(10,  200, "", { from: artist });
     receipt = await instance.setApprovalForAll(engine.address, true, { from: artist });
     try {
-      receipt = await engine.addTokenToMarketplace(instance.address, 4, 200, "", { from: winner });
+     // receipt = await engine.addTokenToMarketplace(instance.address, 4, 200, "", { from: winner });
     } catch (error) { assert.equal(error.reason, "Not nft creator"); }
   });
 
