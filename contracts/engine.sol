@@ -10,11 +10,7 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 contract Engine is Ownable, ReentrancyGuard {
     using SafeMath for uint256;
 
-    event OfferCreated(
-        uint256 _index,
-        address _creator,
-        uint256 _tokenId
-    );
+    event OfferCreated(uint256 _index, address _creator, uint256 _tokenId);
     event AuctionBid(uint256 _index, address _bidder, uint256 amount);
     event Claim(uint256 auctionIndex, address claimer);
     event ReturnBidFunds(uint256 _index, address _bidder, uint256 amount);
@@ -23,7 +19,6 @@ contract Engine is Ownable, ReentrancyGuard {
     event PaymentToOwner(
         address receiver,
         uint256 amount,
-     //   uint256 paidByCustomer,
         uint256 commission,
         uint256 royalties,
         uint256 safetyCheckValue
@@ -47,68 +42,89 @@ contract Engine is Ownable, ReentrancyGuard {
         bool isAuction; // is this offer is for an auction
         uint256 startTime; // when the auction starts
         uint256 duration; // duration in seconds of the auction
-        uint256 currentBidAmount; // current amount paid by the best bidder
-        address payable currentBidOwner; // address of the best bidder
-        uint256 bidCount; // counter of the bids of the auction
+        uint256 minimumBidAmount;
+        uint256 availableCopies;
+        bool hasBids;
     }
     Offer[] public offers;
 
-    // returns the creator of the token
- /*   function getCreator(address _tokenAddress, uint256 _id)
-        public
-        view
-        returns (address)
-    {
-        return tokens[keccak256(abi.encodePacked(_tokenAddress, _id))].creator;
+    struct Auction {
+        address tokenAddress; // address of the token
+        uint256 tokenId; // the tokenId returned when calling "createItem"
+        uint256 currentBidAmount; // current amount paid by the best bidder
+        address payable currentBidOwner; // address of the best bidder
+        uint256 bidCount; // counter of the bids of the auction
+        uint256 offerId;
+        uint256 numCopies;
+    }
+    Auction[] public auctions;
+
+    function createAuctionAndBid(
+        address _tokenAddress, // address of the token
+        uint256 _tokenId, // the tokenId returned when calling "createItem"
+        uint256 _offerId,
+        uint256 _numCopies
+    ) public payable returns (uint256) {
+        Offer memory offer = offers[_offerId];
+        require(offer.isAuction == true, "NFT not in auction");
+        require(
+            offer.availableCopies >= _numCopies,
+            "Not enough copies available"
+        );
+        require(
+            msg.value >= offer.minimumBidAmount.mul(_numCopies),
+            "Price is not enough"
+        );
+
+        Auction memory auction = Auction({
+            tokenAddress: _tokenAddress,
+            tokenId: _tokenId,
+            numCopies: _numCopies,
+            currentBidOwner: payable(msg.sender),
+            currentBidAmount: msg.value,
+            bidCount: 1,
+            offerId: _offerId
+        });
+
+        auctions.push(auction);
+        uint256 index = auctions.length - 1;
+
+        // Update offer with new available amount
+        if (offer.hasBids == false) offer.hasBids = true;
+        offer.availableCopies = offer.availableCopies.sub(_numCopies);
+        offers[_offerId] = offer;
+
+        emit AuctionBid(index, msg.sender, msg.value);
+        return index;
     }
 
-    function getRoyalties(address _tokenAddress, uint256 _id)
-        public
-        view
-        returns (uint256)
-    {
-        return
-            tokens[keccak256(abi.encodePacked(_tokenAddress, _id))].royalties;
+    function bid(uint256 _auctionId) public payable {
+        Auction storage auction = Auction[_auctionId];
+        Offer memory offer = offers[auction.offerId];
+        require(offer.isAuction, "Auction is not enabled");
+        require(
+            msg.value >= offer.minimumBidAmount.mul(auction.numCopies),
+            "Price is not enough"
+        );
+
+          // return funds to the previuos bidder
+
+        (bool success, ) = auction.currentBidOwner.call{
+                        value: auction.currentBidAmount
+        }("");
+        require(success, "Transfer failed on bid.");
+        emit ReturnBidFunds(
+                        _auctionId,
+                        auction.currentBidOwner,
+                        auction.currentBidAmount
+                    );
+
+         auction.currentBidAmount = msg.value;
+        auction.currentBidOwner = payable(msg.sender);
+        auction.bidCount = offer.bidCount.add(1);
+        auctions[_auctionId] = auction;
     }
 
-    function getLockedContent(address _tokenAddress, uint256 _id)
-        public
-        view
-        returns (string memory)
-    {
-        return
-            tokens[keccak256(abi.encodePacked(_tokenAddress, _id))]
-                .lockedContent;
-    }
-*/
-    // Adds the token to the "tokens" table on the marketplace. This is needed is we want to import NFTs created outside of the marketplace
- /*   function addTokenToMarketplace(
-        address _tokenAddr,
-        uint256 _tokenId,
-        uint256 _royalties,
-        string memory _lockedContent
-    ) public {
-        require(_royalties <= 5000, "Royalties too high"); // you cannot set all royalties + commision. So the limit is 50% for royalties
-        //  Check only the creator (artist) can call this method.        
-        Base1155 asset = Base1155(_tokenAddr);
-        require(asset.getCreator(_tokenId) == msg.sender, "Not nft creator");
-
-        if (
-            tokens[keccak256(abi.encodePacked(_tokenAddr, _tokenId))].creator ==
-            address(0)
-        ) {
-            // save the token data
-            tokens[
-                keccak256(abi.encodePacked(_tokenAddr, _tokenId))
-            ] = TokenData({
-                tokenAddr: _tokenAddr,
-                creator: msg.sender,
-                royalties: _royalties,
-                lockedContent: _lockedContent
-            });
-        }
-    }
-*/
     // Creates an offer that could be direct sale and/or auction for a certain amount of a token
     function createOffer(
         address _tokenAddress,
@@ -137,9 +153,9 @@ contract Engine is Ownable, ReentrancyGuard {
             isAuction: _isAuction,
             startTime: _startTime,
             duration: _duration,
-            currentBidAmount: _startPrice,
-            currentBidOwner: payable(address(0)),
-            bidCount: 0
+            minimumBidAmount: _startPrice,
+            hasBids: false,
+            availableCopies: _amount // at the beginning all the copies are available, as nothing has been sold
         });
         offers.push(offer);
         uint256 index = offers.length - 1;
@@ -161,14 +177,14 @@ contract Engine is Ownable, ReentrancyGuard {
         return offer.startTime + offer.duration;
     }
 
-    function removeFromAuction(uint256 _offerId) public {
+    /*    function removeFromAuction(uint256 _offerId) public {
         Offer memory offer = offers[_offerId];
         require(msg.sender == offer.creator, "You are not the owner");
-        require(offer.bidCount == 0, "Bids existing");
+        require(offer.hasBids == false, "Bids existing");
         offer.isAuction = false;
         offers[_offerId] = offer;
     }
-
+*/
     function removeFromSale(uint256 _offerId) public {
         Offer memory offer = offers[_offerId];
         require(msg.sender == offer.creator, "You are not the owner");
@@ -182,26 +198,38 @@ contract Engine is Ownable, ReentrancyGuard {
         commission = _commission;
     }
 
-    function calcSafetyCheckValue(uint256 _amountToPay, uint256 _paidPrice, uint256 _commission) internal pure returns (uint256)
-    {
-         uint256 result = _amountToPay + ((_paidPrice * _commission) / 10000);
-         return result;
+    function calcSafetyCheckValue(
+        uint256 _amountToPay,
+        uint256 _paidPrice,
+        uint256 _commission
+    ) internal pure returns (uint256) {
+        uint256 result = _amountToPay + ((_paidPrice * _commission) / 10000);
+        return result;
     }
-    function buy(uint256 _offerId) external payable nonReentrant {
+
+    function buy(uint256 _offerId, uint256 _amount)
+        external
+        payable
+        nonReentrant
+    {
         address buyer = msg.sender;
         uint256 paidPrice = msg.value;
 
         Offer memory offer = offers[_offerId];
         require(offer.isOnSale == true, "NFT not in direct sale");
-        uint256 price = offer.price;
-        require(paidPrice >= price, "Price is not enough");
-        //  if there is a bid and the auction is closed but not claimed, give priority to claim
         require(
+            offer.availableCopies >= _amount,
+            "Not enough copies available"
+        );
+        uint256 price = offer.price;
+        require(paidPrice >= price.mul(_amount), "Price is not enough");
+        //  if there is a bid and the auction is closed but not claimed, give priority to claim
+        require( // TODO check this
             !(offer.amount == 1 &&
                 offer.isAuction == true &&
-                isFinished(_offerId) &&
+                isFinished(_offerId)), /* &&
                 offer.currentBidAmount != 0 &&
-                offer.currentBidOwner != address(0)),
+                offer.currentBidOwner != address(0)*/
             "Claim asset from auction has priority"
         );
 
@@ -211,14 +239,14 @@ contract Engine is Ownable, ReentrancyGuard {
             offer.creator,
             msg.sender,
             offer.tokenId,
-            1, // only send one item instead of offer.amount,
+            _amount,
             ""
         );
 
         // now, pay the amount - commission - royalties to the auction creator
         address payable creatorNFT = payable(
-           // getCreator(offer.assetAddress, _offerId)
-           asset.getCreator(offer.tokenId)
+            // getCreator(offer.assetAddress, _offerId)
+            asset.getCreator(offer.tokenId)
         );
 
         uint256 commissionToPay = (paidPrice * commission) / 10000;
@@ -226,7 +254,7 @@ contract Engine is Ownable, ReentrancyGuard {
         if (creatorNFT != offer.creator) {
             // It is a resale. Transfer royalties
             royaltiesToPay =
-                (paidPrice *  asset.getRoyalties(offer.tokenId) /*getRoyalties(offer.assetAddress, _offerId)*/) /
+                (paidPrice * asset.getRoyalties(offer.tokenId)) / /*getRoyalties(offer.assetAddress, _offerId)*/
                 10000;
             (bool success, ) = creatorNFT.call{value: royaltiesToPay}("");
             require(success, "Transfer failed.");
@@ -240,17 +268,16 @@ contract Engine is Ownable, ReentrancyGuard {
         emit PaymentToOwner(
             offer.creator,
             amountToPay,
-          //  paidPrice,
             commissionToPay,
             royaltiesToPay,
             calcSafetyCheckValue(amountToPay, paidPrice, commission)
-            //amountToPay + ((paidPrice * commission) / 10000)
         );
 
         accumulatedCommission += commissionToPay;
 
         // if there are no items left in the offer close the offer. Otherwise subtract 1 to the offer amount of tokens for sale
-        if (offer.amount == 1) {
+        // TODO check auctions
+        /* if (offer.amount == 1) {
             // is there is an auction open, we have to give back the last bid amount to the last bidder
             if (offer.isAuction == true) {
                 // this check is for not transferring back funds on the first bid, as the fist bid is the minimum price set by the auction creator
@@ -274,28 +301,35 @@ contract Engine is Ownable, ReentrancyGuard {
 
             offer.isAuction = false;
             offer.isOnSale = false;
+        }*/
+
+        offer.availableCopies = offer.availableCopies.sub(_amount);
+
+        if (offer.availableCopies == 0) {
+            offer.isAuction = false;
+            offer.isOnSale = false;
         }
 
-        offer.amount = offer.amount.sub(1);
         offers[_offerId] = offer;
     }
 
     // At the end of the call, the amount is saved on the marketplace wallet and the previous bid amount is returned to old bidder
     // except in the case of the first bid, as could exists a minimum price set by the creator as first bid.
-    function bid(uint256 _offerId) public payable nonReentrant {
+   /* function bid(uint256 _offerId) public payable nonReentrant {
         Offer storage offer = offers[_offerId];
         // Fix #5. check auction date.
         require(isActive(_offerId), "Auction is not active");
         require(offer.creator != address(0));
         require(offer.isAuction == true, "Auction is not active");
         require(offer.amount > 0, "Auction did not have copies on sale");
-        require(msg.value > offer.currentBidAmount, "Bid too low");
+        //  require(msg.value > offer.currentBidAmount, "Bid too low");
+
         // require(msg.value > offer.minPrice, "Bid lower than minimum price"); // Extra check. Theoretically when creating an offer it sets minprice to
         // we got a better bid. Return funds to the previous best bidder
         // and register the sender as `currentBidOwner`
 
         // this check is for not transferring back funds on the first bid, as the fist bid is the minimum price set by the auction creator
-        if (
+        /*  if (
             offer.currentBidAmount != 0 &&
             offer.currentBidOwner != address(0)
         ) {
@@ -314,7 +348,7 @@ contract Engine is Ownable, ReentrancyGuard {
         offer.currentBidAmount = msg.value;
         offer.currentBidOwner = payable(msg.sender);
         offer.bidCount = offer.bidCount.add(1);
-
+*/
         emit AuctionBid(_offerId, msg.sender, msg.value);
     }
 
@@ -342,7 +376,7 @@ contract Engine is Ownable, ReentrancyGuard {
         return offer.startTime.add(offer.duration);
     }
 
-    function getCurrentBidOwner(uint256 _offerId)
+    /*   function getCurrentBidOwner(uint256 _offerId)
         public
         view
         returns (address)
@@ -366,8 +400,8 @@ contract Engine is Ownable, ReentrancyGuard {
         require(isFinished(_offerId), "Auction not finished yet");
         return offers[_offerId].currentBidOwner;
     }
-
-    function claimAsset(uint256 _offerId) public nonReentrant {
+*/
+    /*   function claimAsset(uint256 _offerId) public nonReentrant {
         require(isFinished(_offerId), "The auction is still active");
         Offer storage offer = offers[_offerId];
 
@@ -410,7 +444,7 @@ contract Engine is Ownable, ReentrancyGuard {
             // It is a resale. Transfer royalties
             royaltiesToPay =
                 (offer.currentBidAmount *
-                    asset.getRoyalties(offer.tokenId) /*getRoyalties(offer.assetAddress, offer.tokenId)*/) /
+                    asset.getRoyalties(offer.tokenId) ) /
                 10000;
                 (bool success1, ) = creatorNFT.call{
                     value: royaltiesToPay
@@ -454,7 +488,7 @@ contract Engine is Ownable, ReentrancyGuard {
     This will cancel the auction and let the copy be sold using direct sale. If the auction has bids, it
     will return the bidded amount to the bidder before closing the auction
  */
-    function forceAuctionEnding(uint256 _offerId) public onlyOwner nonReentrant {
+    /*   function forceAuctionEnding(uint256 _offerId) public onlyOwner nonReentrant {
         Offer storage offer = offers[_offerId];
         if (offer.amount == 1) {
             if (
@@ -482,7 +516,7 @@ contract Engine is Ownable, ReentrancyGuard {
         offer.amount = offer.amount.add(1);
         offers[_offerId] = offer;
     }
-
+*/
     function extractBalance() public onlyOwner nonReentrant {
         address payable me = payable(msg.sender);
         (bool success, ) = me.call{value: accumulatedCommission}("");
