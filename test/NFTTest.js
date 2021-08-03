@@ -7,6 +7,7 @@ contract("Base1155 token", accounts => {
   var artist = accounts[2];
   const winner = accounts[3];
   const secondBuyer = accounts[4];
+  const buyer = accounts[4];
   var engine;
   var instance;
 
@@ -27,7 +28,6 @@ contract("Base1155 token", accounts => {
 
  it("Should create 10 copies of token id 1", async () => {
   var createItemResponse = await instance.createItem(10, 200, "", { from: artist });
-  //  console.log("The tokenId is = " + JSON.stringify(tokenId));
   assert.equal(createItemResponse.receipt.logs[0].args.id, 1);
 });
 
@@ -36,7 +36,6 @@ it("Should create 30 copies of nft with tokenId 2", async () => {
   var createItemResponse = await instance.createItem(30, 300, "secretCode",{ from: artist });
   assert.equal(createItemResponse.receipt.logs[0].args.id, 2);
 });
-
 
   it("Should show URL", async () => {
     const url2 = await instance.uri(2);
@@ -78,27 +77,27 @@ it("Should create 30 copies of nft with tokenId 2", async () => {
     const ownerResult1 = await instance.balanceOf(winner, 1);
     const artistResult1 = await instance.balanceOf(artist, 1);
     // sell token from artist. Put 2 units for sale
-    const result = await engine.createOffer(instance.address, 1, 2, true, false, web3.utils.toWei("13"), 0, 0, 20, { from: artist });
+    const result = await engine.createOffer(instance.address, 1, 2, true, false, 13000, 0, 0, 20, { from: artist });
     assert.equal(result.receipt.logs[0].args._index, 2);
     console.log("Total offers now = " + await engine.getOffersCount() + " -- balance of artist =" + artistResult1);
     // winner buy the token
-    await engine.buy(2, 1, { from: winner, value: web3.utils.toWei("14") });
+    await engine.buy(2, 1, { from: winner, value: 14000 });
     // now the winner wants to put to sale the token he just bought
     await instance.setApprovalForAll(engine.address, true, { from: winner });
     // try to sell more tokens than he bought. This triggers an error
     try {
-      const idOffer = await engine.createOffer(instance.address, 1, 2, true, false, web3.utils.toWei("15"), 0, 0, 20, { from: winner });
+      const idOffer = await engine.createOffer(instance.address, 1, 2, true, false, 15000, 0, 0, 20, { from: winner });
     }
     catch (error) { assert.equal(error.reason, "You are trying to sale more nfts that the ones you have"); }
 
     // now put on sale the token bought
-    const resultOffer = await engine.createOffer(instance.address, 1, 1, true, false, web3.utils.toWei("15"), 0, 0, 20, { from: winner });
+    const resultOffer = await engine.createOffer(instance.address, 1, 1, true, false, 15000, 0, 0, 20, { from: winner });
     assert.equal(resultOffer.receipt.logs[0].args._index, 3);
     let offer = await engine.offers(3);
     console.log("available items on offer #3 = " + offer.availableCopies);
 
     // the second buyer buys the token that previous buyer put on sale
-    await engine.buy(3, 1, { from: secondBuyer, value: web3.utils.toWei("15") });
+    await engine.buy(3, 1, { from: secondBuyer, value: 15000 });
 
     offer = await engine.offers(3);
     console.log("available items on offer #3 after selling = " + offer.availableCopies);
@@ -113,7 +112,7 @@ it("Should create 30 copies of nft with tokenId 2", async () => {
   it("should fail if try to buy an item when all the copies has been sold", async function () {
     try {
       var offer = await engine.offers(3);
-      console.log("Offer #3 " + JSON.stringify(offer));
+  //    console.log("Offer #3 " + JSON.stringify(offer));
       await engine.buy(3, 2, { from: secondBuyer, value: web3.utils.toWei("15000") });
     }
     catch (error) { assert. equal(error.reason, "NFT not in direct sale"); }
@@ -123,7 +122,7 @@ it("Should create 30 copies of nft with tokenId 2", async () => {
     let offer = await engine.offers(2);
     //  console.log(JSON.stringify(offer));
     console.log("There are " + offer.availableCopies + " items available on offer #2");
-    await engine.buy(2, 1, { from: secondBuyer, value: web3.utils.toWei("15") });
+    await engine.buy(2, 1, { from: secondBuyer, value: 15000});
     offer = await engine.offers(2);
     console.log("There are " + offer.availableCopies + " items available on offer #2");
   });
@@ -300,6 +299,60 @@ it("Should create 30 copies of nft with tokenId 2", async () => {
     } catch (error) { assert.equal(error.reason, "Not nft creator"); }
   });
 
+  
+it("Should create 100 copies of token id 5", async () => {
+  var createItemResponse = await instance.createItem(100, 1000, "", { from: artist });
+  assert.equal(createItemResponse.receipt.logs[0].args.id, 5);
+});
+
+  it("Should create an offer with auctions", async () => {
+    let ahora = await engine.ahora();
+    const result = await engine.createOffer(instance.address, 5, 100, true, true, 1000, 0, ahora, 20, { from: artist });
+    
+    assert.equal(result.receipt.logs[0].args._index, 5);
+  });
+
+  it("Should create an auction and a bid", async () => {
+    const result = await engine.createAuctionAndBid(5, 10, { from: buyer, value: 10000 });
+  //  console.log(JSON.stringify(result));
+    assert.equal(result.receipt.logs[0].args._index, 0);
+  });
+
+  it("Should create another auction and a bid", async () => {
+    const result = await engine.createAuctionAndBid(5, 15, { from: buyer, value: 10000 });
+    assert.equal(result.receipt.logs[0].args._index, 1);
+    offer = await engine.offers(5);
+    assert.equal(offer.availableCopies, 75);    
+  });
+
+  it("Should bid on auction 0", async () => {
+    
+    const result = await engine.bid(0, { from: secondBuyer, value: 11000 });
+  });
+
+  it("Should bid on auction 1", async () => {
+    const result = await engine.bid(1, { from: buyer, value: 11000 });
+    offer = await engine.offers(5);
+    assert.equal(offer.availableCopies, 75);  
+  });
+
+  it("should not allow bids lower that best bid", async function () {
+    try {
+      await engine.bid(0, { from: secondBuyer, value: 10000 });    
+    }
+    catch (error) { 
+       assert.equal(error.reason, "Price is not enough");
+       }
+  });
+
+  it("should not allow bids and claims on closed offers", async function () {
+    try {      
+      await helper.advanceTimeAndBlock(20); // wait 20 seconds in the blockchain
+      await engine.bid(0, { from: secondBuyer, value: 100000000000000 });
+    }
+    catch (error) { assert.equal(error.reason, "Auction has ended"); }
+  });
+  
 });
 
 

@@ -56,17 +56,18 @@ contract Engine is Ownable, ReentrancyGuard {
         uint256 bidCount; // counter of the bids of the auction
         uint256 offerId;
         uint256 numCopies;
+        bool active;
     }
     Auction[] public auctions;
 
     function createAuctionAndBid(
-        address _tokenAddress, // address of the token
-        uint256 _tokenId, // the tokenId returned when calling "createItem"
         uint256 _offerId,
         uint256 _numCopies
     ) public payable returns (uint256) {
         Offer memory offer = offers[_offerId];
         require(offer.isAuction == true, "NFT not in auction");
+        require(isActive(_offerId), "Auction has ended");
+        require(offer.creator != address(0));
         require(
             offer.availableCopies >= _numCopies,
             "Not enough copies available"
@@ -77,33 +78,37 @@ contract Engine is Ownable, ReentrancyGuard {
         );
 
         Auction memory auction = Auction({
-            tokenAddress: _tokenAddress,
-            tokenId: _tokenId,
+            tokenAddress: offer.tokenAddress,
+            tokenId: offer.tokenId,
             numCopies: _numCopies,
             currentBidOwner: payable(msg.sender),
             currentBidAmount: msg.value,
             bidCount: 1,
-            offerId: _offerId
+            offerId: _offerId,
+            active: true
         });
 
         auctions.push(auction);
-        uint256 index = auctions.length - 1;
+        uint256 auctionId = auctions.length - 1;
 
         // Update offer with new available amount
         if (offer.hasBids == false) offer.hasBids = true;
         offer.availableCopies = offer.availableCopies.sub(_numCopies);
         offers[_offerId] = offer;
 
-        emit AuctionBid(index, msg.sender, msg.value);
-        return index;
+        emit AuctionBid(auctionId, msg.sender, msg.value);
+        return auctionId;
     }
 
     function bid(uint256 _auctionId) public payable {
-        Auction storage auction = Auction[_auctionId];
+        Auction memory auction = auctions[_auctionId];
         Offer memory offer = offers[auction.offerId];
         require(offer.isAuction, "Auction is not enabled");
+        require(auction.active, "Auction is not active");
+        require(isActive(auction.offerId), "Auction has ended");
+        require(offer.creator != address(0));
         require(
-            msg.value >= offer.minimumBidAmount.mul(auction.numCopies),
+            msg.value >= auction.currentBidAmount,
             "Price is not enough"
         );
 
@@ -121,8 +126,63 @@ contract Engine is Ownable, ReentrancyGuard {
 
          auction.currentBidAmount = msg.value;
         auction.currentBidOwner = payable(msg.sender);
-        auction.bidCount = offer.bidCount.add(1);
+        auction.bidCount = auction.bidCount.add(1);
         auctions[_auctionId] = auction;
+    }
+
+    function closeAuction(uint256 _auctionId) public
+    {
+        Auction memory auction = auctions[_auctionId];
+        Offer memory offer = offers[auction.offerId];
+
+        require(auction.active, "Auction not active");
+        require(isFinished(auction.offerId), "The auction is still active");
+        require(offer.isAuction == true, "Auction is not active");
+
+        emit Claim(auction.offerId, auction.currentBidOwner);
+
+        Base1155 asset = Base1155(offer.tokenAddress);
+        asset.safeTransferFrom(
+            offer.creator,
+            msg.sender,
+            offer.tokenId,
+            auction.numCopies,
+            ""
+        );
+
+        // now, pay the amount - commission - royalties to the auction creator
+        address payable creatorNFT = payable(
+            // getCreator(offer.assetAddress, _offerId)
+            asset.getCreator(offer.tokenId)
+        );
+
+        uint256 commissionToPay = (auction.currentBidAmount * commission) / 10000;
+        uint256 royaltiesToPay = 0;
+        if (creatorNFT != offer.creator) {
+            // It is a resale. Transfer royalties
+            royaltiesToPay =
+                (auction.currentBidAmount * asset.getRoyalties(offer.tokenId)) / /*getRoyalties(offer.assetAddress, _offerId)*/
+                10000;
+            (bool success, ) = creatorNFT.call{value: royaltiesToPay}("");
+            require(success, "Transfer failed.");
+
+            emit Royalties(creatorNFT, royaltiesToPay);
+        }
+        uint256 amountToPay = auction.currentBidAmount - commissionToPay - royaltiesToPay;
+
+        (bool success2, ) = offer.creator.call{value: amountToPay}("");
+        require(success2, "Transfer failed.");
+        emit PaymentToOwner(
+            offer.creator,
+            amountToPay,
+            commissionToPay,
+            royaltiesToPay,
+            calcSafetyCheckValue(amountToPay, auction.currentBidAmount, commission)
+        );
+
+        accumulatedCommission += commissionToPay;
+
+
     }
 
     // Creates an offer that could be direct sale and/or auction for a certain amount of a token
@@ -141,7 +201,7 @@ contract Engine is Ownable, ReentrancyGuard {
         require(
             asset.balanceOf(msg.sender, _tokenId) >= _amount,
             "You are trying to sale more nfts that the ones you have"
-        );
+        );        
 
         Offer memory offer = Offer({
             tokenAddress: _tokenAddress,
@@ -348,10 +408,10 @@ contract Engine is Ownable, ReentrancyGuard {
         offer.currentBidAmount = msg.value;
         offer.currentBidOwner = payable(msg.sender);
         offer.bidCount = offer.bidCount.add(1);
-*/
+
         emit AuctionBid(_offerId, msg.sender, msg.value);
     }
-
+*/
     function isActive(uint256 _offerId) public view returns (bool) {
         return getStatus(_offerId) == Status.active;
     }
@@ -376,31 +436,31 @@ contract Engine is Ownable, ReentrancyGuard {
         return offer.startTime.add(offer.duration);
     }
 
-    /*   function getCurrentBidOwner(uint256 _offerId)
+       function getCurrentBidOwner(uint256 _auctionId)
         public
         view
         returns (address)
     {
-        return offers[_offerId].currentBidOwner;
+        return auctions[_auctionId].currentBidOwner;
     }
 
-    function getCurrentBidAmount(uint256 _offerId)
+    function getCurrentBidAmount(uint256 _auctionId)
         public
         view
         returns (uint256)
     {
-        return offers[_offerId].currentBidAmount;
+        return auctions[_auctionId].currentBidAmount;
     }
 
-    function getBidCount(uint256 _offerId) public view returns (uint256) {
-        return offers[_offerId].bidCount;
+    function getBidCount(uint256 _auctionId) public view returns (uint256) {
+        return auctions[_auctionId].bidCount;
     }
 
-    function getWinner(uint256 _offerId) public view returns (address) {
-        require(isFinished(_offerId), "Auction not finished yet");
-        return offers[_offerId].currentBidOwner;
+    function getWinner(uint256 _auctionId) public view returns (address) {
+        require(isFinished(auctions[_auctionId].offerId), "Auction not finished yet");
+        return auctions[_auctionId].currentBidOwner;
     }
-*/
+
     /*   function claimAsset(uint256 _offerId) public nonReentrant {
         require(isFinished(_offerId), "The auction is still active");
         Offer storage offer = offers[_offerId];
