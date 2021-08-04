@@ -144,7 +144,7 @@ contract Engine is Ownable, ReentrancyGuard {
         Base1155 asset = Base1155(offer.tokenAddress);
         asset.safeTransferFrom(
             offer.creator,
-            msg.sender,
+            auction.currentBidOwner,
             offer.tokenId,
             auction.numCopies,
             ""
