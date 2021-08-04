@@ -373,10 +373,56 @@ contract("Base1155 token", accounts => {
      balance = await web3.eth.getBalance(artist);
      amount = await instance.balanceOf(auctionWinner, 5);
 
-     console.log("auction winner = " + auctionWinner + " - balance "+ balance + " tokens: " + amount);
-    
-    
-   // console.log(JSON.stringify(result));
+     console.log("auction winner = " + auctionWinner + " - balance "+ balance + " tokens: " + amount);  
+  });
+
+  it("Should create an offer with auctions for a resale", async () => {
+    let ahora = await engine.ahora();
+    await instance.setApprovalForAll(engine.address, true, { from: secondBuyer });
+    const result = await engine.createOffer(instance.address, 5, 10, true, true, 1000, 0, ahora, 20, { from: secondBuyer });
+    assert.equal(result.receipt.logs[0].args._index, 6);
+    offer = await engine.offers(6);
+    assert.equal(offer.availableCopies, 10);
+  });
+
+  it("Should create an auction and a bid for a resale", async () => {
+    const result = await engine.createAuctionAndBid(6, 8, { from: buyer, value: 8000 });
+    assert.equal(result.receipt.logs[0].args._index, 2);
+    offer = await engine.offers(6);
+    assert.equal(offer.availableCopies, 2);
+  });
+
+  it("Should bid on auction 6 (resale)", async () => {
+    const result = await engine.bid(2, { from: winner, value: 11000 });    
+  });
+
+  it("Should close auction 2", async () => {
+    await helper.advanceTimeAndBlock(20); // wait 20 seconds in the blockchain
+
+    let winnerAuction = await engine.getWinner(2);
+    assert(winnerAuction, winner);
+
+    balanceArtistBefore = await web3.eth.getBalance(artist);
+    amountTokensOwnerBefore = await instance.balanceOf(secondBuyer, 5);    
+    amountTokensWinnerBefore = await instance.balanceOf(winner, 5);
+
+ //   await instance.setApprovalForAll(engine.address, true, { from: secondBuyer });
+    balanceOwnerBefore = await web3.eth.getBalance(secondBuyer);
+    let result = await engine.closeAuction(2);
+
+    balance = await web3.eth.getBalance(artist);
+    amountTokensWinnerAfter = await instance.balanceOf(winner, 5);
+    amountTokensOwner = await instance.balanceOf(secondBuyer, 5);
+    balanceOwner = await web3.eth.getBalance(secondBuyer);
+
+    let auction = await engine.auctions(2);
+    assert(amountTokensWinnerAfter, auction.amount); // should be 8 tokens the transferred
+    assert(web3.utils.toBN(balance).sub(web3.utils.toBN(balanceArtistBefore)), 1100); // the royalties must be 10% of 11000 so 1100
+    assert( web3.utils.toBN(balanceOwner).sub(web3.utils.toBN(balanceOwnerBefore)), 9900); // as marketplace fee is 0%, what owner gets is 11000 - royalties, so 9900
+
+    console.log("royalties paid " + (web3.utils.toBN(balance).sub(web3.utils.toBN(balanceArtistBefore))));    
+    console.log("Balance Owner diff " + web3.utils.toBN(balanceOwner).sub(web3.utils.toBN(balanceOwnerBefore)) );
+   //   console.log(JSON.stringify(result));
   });
 });
 
