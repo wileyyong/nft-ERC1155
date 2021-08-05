@@ -12,6 +12,8 @@ contract Base1155 is ERC1155, Ownable {
  
  struct TokenData {
         address creator; // creator/artist. Needed for knowing who will receive the royalties
+        uint256 royalties; // royalties in basic points (so a 2% is 200, a 1.5% is 150, etc.)
+        string lockedContent; // content only available to the owner that could contain stuff like coupons, discounts, etc.
     }
     mapping(uint256 => TokenData) public tokens;
 
@@ -20,15 +22,17 @@ contract Base1155 is ERC1155, Ownable {
     {}
     
     function createItem(
-        uint256 _amount // amount of tokens for this item
-    ) public returns (uint256) {
+        uint256 _amount, // amount of tokens for this item
+        uint256 _royalties,
+        string memory _lockedContent
+    ) public returns (uint256) { 
         _tokenIds.increment();
         uint256 newItemId = _tokenIds.current();
 
         // mint the NFT tokens of the collection
         _mint(msg.sender, newItemId, _amount, "");
 
-        tokens[newItemId] = TokenData({creator: msg.sender});
+        tokens[newItemId] = TokenData({creator: msg.sender, royalties: _royalties, lockedContent: _lockedContent});
       
         return newItemId;
     }
@@ -38,5 +42,13 @@ contract Base1155 is ERC1155, Ownable {
         return tokens[_tokenId].creator;
     }
 
+    function getRoyalties(uint256 _tokenId) public view returns (uint256)
+    {
+        return tokens[_tokenId].royalties;
+    }
    
+   function getLockedContent(uint256 _tokenId) public view returns (string memory)
+    {
+        return tokens[_tokenId].lockedContent;
+    }
 }
