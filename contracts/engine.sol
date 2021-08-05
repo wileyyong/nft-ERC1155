@@ -27,6 +27,8 @@ contract Engine is Ownable, ReentrancyGuard {
     uint256 public commission = 0; // this is the commission that will charge the marketplace by default.
     uint256 public accumulatedCommission = 0;
 
+    uint256 public totalSales = 0;
+
     enum Status {
         pending,
         active,
@@ -180,9 +182,8 @@ contract Engine is Ownable, ReentrancyGuard {
             calcSafetyCheckValue(amountToPay, auction.currentBidAmount, commission)
         );
 
-        accumulatedCommission += commissionToPay;
-
-
+        accumulatedCommission = accumulatedCommission.add(commissionToPay);
+        totalSales = totalSales.add(auction.currentBidAmount);
     }
 
     // Creates an offer that could be direct sale and/or auction for a certain amount of a token
@@ -334,6 +335,7 @@ contract Engine is Ownable, ReentrancyGuard {
         );
 
         accumulatedCommission += commissionToPay;
+        totalSales = totalSales.add(paidPrice);
 
         // if there are no items left in the offer close the offer. Otherwise subtract 1 to the offer amount of tokens for sale
         // TODO check auctions

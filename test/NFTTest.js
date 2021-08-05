@@ -366,14 +366,14 @@ contract("Base1155 token", accounts => {
     let balance = await web3.eth.getBalance(artist);
     let amount = await instance.balanceOf(auctionWinner, 5);
 
-    console.log("auction winner = " + auctionWinner + " - balance "+ balance + " tokens: " + amount);
+    console.log("auction winner = " + auctionWinner + " - balance " + balance + " tokens: " + amount);
 
     const result = await engine.closeAuction(0);
 
-     balance = await web3.eth.getBalance(artist);
-     amount = await instance.balanceOf(auctionWinner, 5);
+    balance = await web3.eth.getBalance(artist);
+    amount = await instance.balanceOf(auctionWinner, 5);
 
-     console.log("auction winner = " + auctionWinner + " - balance "+ balance + " tokens: " + amount);  
+    console.log("auction winner = " + auctionWinner + " - balance " + balance + " tokens: " + amount);
   });
 
   it("Should create an offer with auctions for a resale", async () => {
@@ -393,7 +393,7 @@ contract("Base1155 token", accounts => {
   });
 
   it("Should bid on auction 6 (resale)", async () => {
-    const result = await engine.bid(2, { from: winner, value: 11000 });    
+    const result = await engine.bid(2, { from: winner, value: 11000 });
   });
 
   it("Should close auction 2", async () => {
@@ -403,10 +403,10 @@ contract("Base1155 token", accounts => {
     assert(winnerAuction, winner);
 
     balanceArtistBefore = await web3.eth.getBalance(artist);
-    amountTokensOwnerBefore = await instance.balanceOf(secondBuyer, 5);    
+    amountTokensOwnerBefore = await instance.balanceOf(secondBuyer, 5);
     amountTokensWinnerBefore = await instance.balanceOf(winner, 5);
 
- //   await instance.setApprovalForAll(engine.address, true, { from: secondBuyer });
+    //   await instance.setApprovalForAll(engine.address, true, { from: secondBuyer });
     balanceOwnerBefore = await web3.eth.getBalance(secondBuyer);
     let result = await engine.closeAuction(2);
 
@@ -418,11 +418,16 @@ contract("Base1155 token", accounts => {
     let auction = await engine.auctions(2);
     assert(amountTokensWinnerAfter, auction.amount); // should be 8 tokens the transferred
     assert(web3.utils.toBN(balance).sub(web3.utils.toBN(balanceArtistBefore)), 1100); // the royalties must be 10% of 11000 so 1100
-    assert( web3.utils.toBN(balanceOwner).sub(web3.utils.toBN(balanceOwnerBefore)), 9900); // as marketplace fee is 0%, what owner gets is 11000 - royalties, so 9900
+    assert(web3.utils.toBN(balanceOwner).sub(web3.utils.toBN(balanceOwnerBefore)), 9900); // as marketplace fee is 0%, what owner gets is 11000 - royalties, so 9900
 
-    console.log("royalties paid " + (web3.utils.toBN(balance).sub(web3.utils.toBN(balanceArtistBefore))));    
-    console.log("Balance Owner diff " + web3.utils.toBN(balanceOwner).sub(web3.utils.toBN(balanceOwnerBefore)) );
-   //   console.log(JSON.stringify(result));
+    console.log("royalties paid " + (web3.utils.toBN(balance).sub(web3.utils.toBN(balanceArtistBefore))));
+    console.log("Balance Owner diff " + web3.utils.toBN(balanceOwner).sub(web3.utils.toBN(balanceOwnerBefore)));
+    //   console.log(JSON.stringify(result));
+  });
+
+  it("Should update total sales", async () => {
+    const result = await engine.totalSales.call();
+    assert(result, 6600);
   });
 });
 
