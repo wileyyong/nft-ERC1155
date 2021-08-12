@@ -429,6 +429,15 @@ contract("Base1155 token", accounts => {
     const result = await engine.totalSales.call();
     assert(result, 6600);
   });
+
+  it("Should fail closing two times an auction", async () => {
+    try {    
+      const result = await engine.closeAuction(2, { from: buyer });
+    }
+    catch (error) {  
+      assert.equal(error.reason, "Auction not active"); }
+     
+  });
 });
 
 
