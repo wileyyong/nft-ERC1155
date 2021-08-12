@@ -353,35 +353,7 @@ contract Engine is Ownable, ReentrancyGuard {
         );
 
         accumulatedCommission += commissionToPay;
-        totalSales = totalSales.add(paidPrice);
-
-        // if there are no items left in the offer close the offer. Otherwise subtract 1 to the offer amount of tokens for sale
-        // TODO check auctions
-        /* if (offer.amount == 1) {
-            // is there is an auction open, we have to give back the last bid amount to the last bidder
-            if (offer.isAuction == true) {
-                // this check is for not transferring back funds on the first bid, as the fist bid is the minimum price set by the auction creator
-                // and the bid owner is address(0)
-                if (
-                    offer.currentBidAmount != 0 &&
-                    offer.currentBidOwner != address(0)
-                ) {
-                    // return funds to the previuos bidder
-                    (bool success3, ) = offer.currentBidOwner.call{
-                        value: offer.currentBidAmount
-                    }("");
-                    require(success3, "Transfer failed.");
-                    emit ReturnBidFunds(
-                        _offerId,
-                        offer.currentBidOwner,
-                        offer.currentBidAmount
-                    );
-                }
-            }
-
-            offer.isAuction = false;
-            offer.isOnSale = false;
-        }*/
+        totalSales = totalSales.add(paidPrice);        
 
         offer.availableCopies = offer.availableCopies.sub(_amount);
 
@@ -392,46 +364,7 @@ contract Engine is Ownable, ReentrancyGuard {
 
         offers[_offerId] = offer;
     }
-
-    // At the end of the call, the amount is saved on the marketplace wallet and the previous bid amount is returned to old bidder
-    // except in the case of the first bid, as could exists a minimum price set by the creator as first bid.
-    /* function bid(uint256 _offerId) public payable nonReentrant {
-        Offer storage offer = offers[_offerId];
-        // Fix #5. check auction date.
-        require(isActive(_offerId), "Auction is not active");
-        require(offer.creator != address(0));
-        require(offer.isAuction == true, "Auction is not active");
-        require(offer.amount > 0, "Auction did not have copies on sale");
-        //  require(msg.value > offer.currentBidAmount, "Bid too low");
-
-        // require(msg.value > offer.minPrice, "Bid lower than minimum price"); // Extra check. Theoretically when creating an offer it sets minprice to
-        // we got a better bid. Return funds to the previous best bidder
-        // and register the sender as `currentBidOwner`
-
-        // this check is for not transferring back funds on the first bid, as the fist bid is the minimum price set by the auction creator
-        /*  if (
-            offer.currentBidAmount != 0 &&
-            offer.currentBidOwner != address(0)
-        ) {
-            // return funds to the previuos bidder
-                    (bool success, ) = offer.currentBidOwner.call{
-                        value: offer.currentBidAmount
-                    }("");
-                    require(success, "Transfer failed.");
-            emit ReturnBidFunds(
-                _offerId,
-                offer.currentBidOwner,
-                offer.currentBidAmount
-            );
-        }
-        // register new bidder
-        offer.currentBidAmount = msg.value;
-        offer.currentBidOwner = payable(msg.sender);
-        offer.bidCount = offer.bidCount.add(1);
-
-        emit AuctionBid(_offerId, msg.sender, msg.value);
-    }
-*/
+  
     function isActive(uint256 _offerId) public view returns (bool) {
         return getStatus(_offerId) == Status.active;
     }
@@ -484,122 +417,40 @@ contract Engine is Ownable, ReentrancyGuard {
         return auctions[_auctionId].currentBidOwner;
     }
 
-    /*   function claimAsset(uint256 _offerId) public nonReentrant {
-        require(isFinished(_offerId), "The auction is still active");
-        Offer storage offer = offers[_offerId];
+  
 
-        address winner = getWinner(_offerId);
-        require(winner == msg.sender, "You are not the winner of the auction");
-
-        // the token could be sold in direct sale or the owner cancelled the auction
-        require(offer.isAuction == true, "NFT not in auction");
-
-        Base1155 asset = Base1155(offer.tokenAddress);
-
-        // #3, check if the asset owner had removed their approval or the offer creator is not the token owner anymore.
-        require(
-            asset.balanceOf(offer.creator, offer.tokenId) >= offer.amount,
-            "Owner did not have enough tokens"
-        );
-        require(
-            asset.isApprovedForAll(offer.creator, address(this)),
-            "NFT not approved"
-        );
-
-        asset.safeTransferFrom(
-            offer.creator,
-            msg.sender,
-            offer.tokenId,
-            1, //offer.amount,
-            ""
-        );
-
-        emit Claim(_offerId, winner);
-
-        // now, pay the amount - commission - royalties to the auction creator
-        address payable creatorNFT = payable(
-            //getCreator(offer.assetAddress, offer.tokenId)
-            asset.getCreator(offer.tokenId)
-        );
-        uint256 commissionToPay = (offer.currentBidAmount * commission) / 10000;
-        uint256 royaltiesToPay = 0;
-        if (creatorNFT != offer.creator) {
-            // It is a resale. Transfer royalties
-            royaltiesToPay =
-                (offer.currentBidAmount *
-                    asset.getRoyalties(offer.tokenId) ) /
-                10000;
-                (bool success1, ) = creatorNFT.call{
-                    value: royaltiesToPay
-                }("");
-                require(success1, "Transfer failed.");
-            emit Royalties(creatorNFT, royaltiesToPay);
-        }
-        uint256 amountToPay = offer.currentBidAmount -
-            commissionToPay -
-            royaltiesToPay;
-
-                (bool success, ) = offer.creator.call{
-                    value: amountToPay
-                }("");
-                require(success, "Transfer failed.");
-        emit PaymentToOwner(
-            offer.creator,
-            amountToPay,
-       //     offer.currentBidAmount,
-            commissionToPay,
-            royaltiesToPay,
-            amountToPay + commissionToPay + royaltiesToPay
-        );
-
-        accumulatedCommission += commissionToPay;
-
-        // if there are no items left in the offer close the offer. Otherwise subtract 1 to the offer amount of tokens for sale
-        if (offer.amount == 1) {
-            offer.isAuction = false;
-            offer.isOnSale = false;
-        } else {
-            offer.currentBidOwner = payable(0);
-            offer.currentBidAmount = 0;
-        }
-
-        offer.amount = offer.amount.sub(1);
-        offers[_offerId] = offer;
-    }
-
-    /* The owner should call this method to cancel an auction on an offer
-    This will cancel the auction and let the copy be sold using direct sale. If the auction has bids, it
+    /* The contract owner should call this method to cancel an auction on an offer
+    This will cancel the auction. If the auction has bids, it
     will return the bidded amount to the bidder before closing the auction
  */
-    /*   function forceAuctionEnding(uint256 _offerId) public onlyOwner nonReentrant {
-        Offer storage offer = offers[_offerId];
-        if (offer.amount == 1) {
+       function forceAuctionEnding(uint256 _auctionId) public onlyOwner nonReentrant {
+           Auction memory auction = auctions[_auctionId];
+        Offer storage offer = offers[auction.offerId];
             if (
-                offer.currentBidAmount != 0 &&
-                offer.currentBidOwner != address(0)
+                auction.currentBidAmount != 0 &&
+                auction.currentBidOwner != address(0)
             ) {
                 // return funds to the previuos bidder, if there is a previous bid
-                (bool success, ) = offer.currentBidOwner.call{
-                    value: offer.currentBidAmount
+                (bool success, ) = auction.currentBidOwner.call{
+                    value: auction.currentBidAmount
                 }("");
                 require(success, "Transfer failed.");
                 emit ReturnBidFunds(
-                    _offerId,
-                    offer.currentBidOwner,
-                    offer.currentBidAmount
+                    auction.offerId,
+                    auction.currentBidOwner,
+                    auction.currentBidAmount
                 );
             }
-        } else {
-            offer.currentBidOwner = payable(0);
-            offer.currentBidAmount = 0;
-        }
+        
+        auction.active=false;
+        auctions[_auctionId] = auction;
 
         offer.isAuction = false;
 
-        offer.amount = offer.amount.add(1);
-        offers[_offerId] = offer;
+        offer.amount = offer.amount.add(auction.numCopies);
+        offers[auction.offerId] = offer;
     }
-*/
+
     function extractBalance() public onlyOwner nonReentrant {
         address payable me = payable(msg.sender);
         (bool success, ) = me.call{value: accumulatedCommission}("");
