@@ -366,6 +366,25 @@ contract("Base1155 token", accounts => {
     //   console.log(JSON.stringify(result));
   });
 
+  it("Should fail buying when available count = 0", async () => {
+    try {
+      await engine.buy(7, 1, { from: buyer, value: 8000 });
+    }
+    catch (error) { assert.equal(error.reason, "Not enough copies available"); }   
+    
+  });
+
+  it("Should allow buying in an offer as long the available count >= 0", async () => {
+    offer = await engine.offers(6);
+    console.log(JSON.stringify(offer));
+    assert.equal(offer.availableCopies.toNumber(), 80);
+    amountTokensOwner = await instance.balanceOf(offer.creator, 5);
+    console.log("amountTokensOwner " + amountTokensOwner.toNumber())
+    const result = await engine.buy(6, 1, { from: buyer, value: 8000 });
+    offer = await engine.offers(6);
+    assert.equal(offer.availableCopies.toNumber(), 79);
+  });
+
   it("Should update total sales", async () => {
     const result = await engine.totalSales.call();
     assert(result, 6600);
