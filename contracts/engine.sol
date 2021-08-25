@@ -59,6 +59,8 @@ contract Engine is Ownable, ReentrancyGuard {
         uint256 offerId;
         uint256 numCopies;
         bool active;
+        uint256 startTime; // when the auction starts
+        uint256 duration; // duration in seconds of the auction
     }
     Auction[] public auctions;
 
@@ -68,8 +70,9 @@ contract Engine is Ownable, ReentrancyGuard {
         returns (uint256)
     {
         Offer memory offer = offers[_offerId];
-        require(offer.isAuction == true, "NFT not in auction");
-        require(isActive(_offerId), "Auction has ended");
+        require(offer.isAuction == true, "Not in auction");
+     //   require(isActive(_offerId), "Auction has ended");
+        require(offer.hasBids == false, "not active auction");
         require(offer.creator != address(0));
         require(
             offer.availableCopies >= _numCopies,
@@ -88,7 +91,9 @@ contract Engine is Ownable, ReentrancyGuard {
             currentBidAmount: msg.value,
             bidCount: 1,
             offerId: _offerId,
-            active: true
+            active: true,
+            startTime: block.timestamp,
+            duration: offer.duration
         });
 
         auctions.push(auction);
@@ -108,9 +113,9 @@ contract Engine is Ownable, ReentrancyGuard {
         Offer memory offer = offers[auction.offerId];
         require(offer.isAuction, "Auction is not enabled");
         require(auction.active, "Auction is not active");
-        require(isActive(auction.offerId), "Auction has ended");
+        require(isActive(_auctionId), "Auction has ended");
         require(offer.creator != address(0));
-        require(msg.value >= auction.currentBidAmount, "Price is not enough");
+        require(msg.value > auction.currentBidAmount, "Price is not enough");
 
         // return funds to the previuos bidder
 
@@ -128,6 +133,7 @@ contract Engine is Ownable, ReentrancyGuard {
         auction.currentBidOwner = payable(msg.sender);
         auction.bidCount = auction.bidCount.add(1);
         auctions[_auctionId] = auction;
+        
     }
 
     function closeAuction(uint256 _auctionId) public {
@@ -135,7 +141,7 @@ contract Engine is Ownable, ReentrancyGuard {
         Offer memory offer = offers[auction.offerId];
 
         require(auction.active == true, "Auction not active");
-        require(isFinished(auction.offerId), "The auction is still active");
+        require(isFinished(_auctionId), "The auction is still active");
         require(offer.isAuction == true, "Auction is not active");
 
         Base1155 asset = Base1155(offer.tokenAddress);
@@ -171,7 +177,7 @@ contract Engine is Ownable, ReentrancyGuard {
         if (creatorNFT != offer.creator) {
             // It is a resale. Transfer royalties
             royaltiesToPay =
-                (auction.currentBidAmount * asset.getRoyalties(offer.tokenId)) / /*getRoyalties(offer.assetAddress, _offerId)*/
+                (auction.currentBidAmount * asset.getRoyalties(offer.tokenId)) / 
                 10000;
             (bool success, ) = creatorNFT.call{value: royaltiesToPay}("");
             require(success, "Transfer failed.");
@@ -201,6 +207,9 @@ contract Engine is Ownable, ReentrancyGuard {
 
         auction.active = false;
         auctions[_auctionId] = auction;
+
+        offer.hasBids = false;
+        offers[auction.offerId] = offer;
     }
 
     // Creates an offer that could be direct sale and/or auction for a certain amount of a token
@@ -250,10 +259,10 @@ contract Engine is Ownable, ReentrancyGuard {
         return block.timestamp;
     }
 
-    function getEndDate(uint256 _offerId) public view returns (uint256) {
+    /*function getEndDate(uint256 _offerId) public view returns (uint256) {
         Offer memory offer = offers[_offerId];
         return offer.startTime + offer.duration;
-    }
+    }*/
 
     function removeFromAuction(uint256 _offerId) public {
         Offer memory offer = offers[_offerId];
@@ -365,28 +374,28 @@ contract Engine is Ownable, ReentrancyGuard {
         offers[_offerId] = offer;
     }
   
-    function isActive(uint256 _offerId) public view returns (bool) {
-        return getStatus(_offerId) == Status.active;
+    function isActive(uint256 _auctionId) public view returns (bool) {
+        return getStatus(_auctionId) == Status.active;
     }
 
-    function isFinished(uint256 _offerId) public view returns (bool) {
-        return getStatus(_offerId) == Status.finished;
+    function isFinished(uint256 _auctionId) public view returns (bool) {
+        return getStatus(_auctionId) == Status.finished;
     }
 
-    function getStatus(uint256 _offerId) public view returns (Status) {
-        Offer storage offer = offers[_offerId];
-        if (block.timestamp < offer.startTime) {
+    function getStatus(uint256 _auctionId) public view returns (Status) {
+        Auction storage auction = auctions[_auctionId];
+        if (block.timestamp < auction.startTime) {
             return Status.pending;
-        } else if (block.timestamp < offer.startTime.add(offer.duration)) {
+        } else if (block.timestamp < auction.startTime.add(auction.duration)) {
             return Status.active;
         } else {
             return Status.finished;
         }
     }
 
-    function endDate(uint256 _offerId) public view returns (uint256) {
-        Offer storage offer = offers[_offerId];
-        return offer.startTime.add(offer.duration);
+    function endDate(uint256 _auctionId) public view returns (uint256) {
+         Auction storage auction = auctions[_auctionId];
+        return auction.startTime.add(auction.duration);
     }
 
     function getCurrentBidOwner(uint256 _auctionId)
@@ -411,13 +420,11 @@ contract Engine is Ownable, ReentrancyGuard {
 
     function getWinner(uint256 _auctionId) public view returns (address) {
         require(
-            isFinished(auctions[_auctionId].offerId),
+            isFinished(_auctionId),
             "Auction not finished yet"
         );
         return auctions[_auctionId].currentBidOwner;
     }
-
-  
 
     /* The contract owner should call this method to cancel an auction on an offer
     This will cancel the auction. If the auction has bids, it
