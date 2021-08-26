@@ -251,9 +251,14 @@ contract Engine is Ownable, ReentrancyGuard {
         return index;
     }
 
-    function getOffersCount() public view returns (uint256) {
-        return offers.length;
+    function hasBids(uint256 _offerId) public view returns (bool) {
+        Offer memory offer = offers[_offerId];
+        return offer.hasBids;
     }
+
+  /*  function getOffersCount() public view returns (uint256) {
+        return offers.length;
+    }*/
 
     function ahora() public view returns (uint256) {
         return block.timestamp;
@@ -264,20 +269,21 @@ contract Engine is Ownable, ReentrancyGuard {
         return offer.startTime + offer.duration;
     }*/
 
-    function removeFromAuction(uint256 _offerId) public {
+    function removeFromAuctionOrSale(uint256 _offerId, bool _sale, bool _auction) public {
         Offer memory offer = offers[_offerId];
         require(msg.sender == offer.creator, "You are not the owner");
         require(offer.hasBids == false, "Bids existing");
-        offer.isAuction = false;
+        offer.isAuction = _auction;
+        offer.isOnSale = _sale;
         offers[_offerId] = offer;
     }
 
-    function removeFromSale(uint256 _offerId) public {
+  /*  function removeFromSale(uint256 _offerId) public {
         Offer memory offer = offers[_offerId];
         require(msg.sender == offer.creator, "You are not the owner");
         offer.isOnSale = false;
         offers[_offerId] = offer;
-    }
+    }*/
 
     // Changes the default commission. Only the owner of the marketplace can do that. In basic points
     function setCommission(uint256 _commission) public onlyOwner {

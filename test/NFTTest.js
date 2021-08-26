@@ -85,7 +85,7 @@ contract("Base1155 token", accounts => {
     // sell token from artist. Put 2 units for sale
     const result = await engine.createOffer(instance.address, 1, 2, true, false, 13000, 0, 0, 20, { from: artist });
     assert.equal(result.receipt.logs[0].args._index, 2);
-    console.log("Total offers now = " + await engine.getOffersCount() + " -- balance of artist =" + artistResult1);
+ //   console.log("Total offers now = " + await engine.getOffersCount() + " -- balance of artist =" + artistResult1);
     // winner buy the token
     await engine.buy(2, 1, { from: winner, value: 14000 });
     // now the winner wants to put to sale the token he just bought
@@ -162,8 +162,8 @@ contract("Base1155 token", accounts => {
     let ahora = await engine.ahora();
     let resultOffer = await engine.createOffer(instance.address, 1, 4, true, true, web3.utils.toWei("100000000000"), 0, ahora, 10, { from: artist });
     assert.equal(resultOffer.receipt.logs[0].args._index, 4);
-    let count = await engine.getOffersCount();
-    console.log("Num offers=" + count);
+   // let count = await engine.getOffersCount();
+   // console.log("Num offers=" + count);
   });
 
 
@@ -330,12 +330,26 @@ contract("Base1155 token", accounts => {
     catch (error) { assert.equal(error.reason, "Not enough copies available"); }   
   });
 
+  it("Should show if an offer hasBids ==false when there is not an auction", async () => {
+    const result = await engine.hasBids(7);
+    console.log("hasBids" + result)
+    assert.notEqual(result, "false");
+  });
+
+
   it("Should create an auction and a bid for a resale", async () => {
     const result = await engine.createAuctionAndBid(7, 2, { from: buyer, value: 8000 });
     assert.equal(result.receipt.logs[0].args._index, 2);
     offer = await engine.offers(7);
     assert.equal(offer.availableCopies, 0);
   });
+
+  it("Should show if an offer has bids when there is an auction", async () => {
+    const result = await engine.hasBids(7);
+    console.log("hasBids" + result)
+    assert.notEqual(result, "true");
+  });
+
 
   it("Should bid on auction 2 (resale)", async () => {
     const result = await engine.bid(2, { from: winner, value: 11000 });
