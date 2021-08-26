@@ -27,6 +27,10 @@ contract("Base1155 token", accounts => {
     assert.notEqual(tokenId, null);
   });
 
+  it("should allow changing the commission", async function () {
+    await engine.setCommission(400, { from: accounts[8] });
+  });
+
   it("Should create 10 copies of token id 1", async () => {
     var createItemResponse = await instance.createItem(10, 200, "", { from: artist });
     assert.equal(createItemResponse.receipt.logs[0].args.id, 1);
@@ -277,7 +281,7 @@ contract("Base1155 token", accounts => {
 
     console.log("auction winner = " + auctionWinner + " - balance " + balance + " tokens: " + amountIni);
 
-    const result = await engine.closeAuction(0);
+    const result = await engine.closeAuction(0,{ from: accounts[8]});
 
     balance = await web3.eth.getBalance(artist);
     amountEnd = await instance.balanceOf(auctionWinner, 5);
@@ -349,7 +353,7 @@ contract("Base1155 token", accounts => {
 
     //   await instance.setApprovalForAll(engine.address, true, { from: secondBuyer });
     balanceOwnerBefore = await web3.eth.getBalance(secondBuyer);
-    let result = await engine.closeAuction(2);
+    let result = await engine.closeAuction(2,{ from: accounts[8]});
 
     balance = await web3.eth.getBalance(artist);
     amountTokensWinnerAfter = await instance.balanceOf(winner, 5);
@@ -376,23 +380,35 @@ contract("Base1155 token", accounts => {
 
   it("Should allow buying in an offer as long the available count >= 0", async () => {
     offer = await engine.offers(6);
-    console.log(JSON.stringify(offer));
+   // console.log(JSON.stringify(offer));
     assert.equal(offer.availableCopies.toNumber(), 80);
     amountTokensOwner = await instance.balanceOf(offer.creator, 5);
     console.log("amountTokensOwner " + amountTokensOwner.toNumber())
-    const result = await engine.buy(6, 1, { from: buyer, value: 8000 });
+    let balanceIni = await web3.eth.getBalance(offer.creator);
+    let accumulatedCommisionsBefore  = await engine.accumulatedCommission.call();
+    console.log("offer Comm before=" + web3.utils.fromWei(accumulatedCommisionsBefore));
+
+    const result = await engine.buy(6, 1, { from: buyer, value: web3.utils.toWei('1', 'milli') });
+
+    let balanceEnd = await web3.eth.getBalance(offer.creator);
+    console.log(" Balance bidder after " + balanceIni + " -- balance bidder with returning funds " + balanceEnd);
+  
+    let accumulatedCommisions = await engine.accumulatedCommission.call();
+    console.log("offer Comm=" + web3.utils.fromWei(accumulatedCommisions));
+
     offer = await engine.offers(6);
     assert.equal(offer.availableCopies.toNumber(), 79);
   });
 
   it("Should update total sales", async () => {
     const result = await engine.totalSales.call();
-    assert(result, 6600);
+    console.log("Total sales " + result)
+    assert.notEqual(result, 0);
   });
 
   it("Should fail closing two times an auction", async () => {
     try {
-      const result = await engine.closeAuction(2, { from: buyer });
+      const result = await engine.closeAuction(2, { from: accounts[8] });
     }
     catch (error) {
       assert.equal(error.reason, "Auction not active");

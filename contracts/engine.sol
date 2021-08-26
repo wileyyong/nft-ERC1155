@@ -136,7 +136,7 @@ contract Engine is Ownable, ReentrancyGuard {
         
     }
 
-    function closeAuction(uint256 _auctionId) public {
+    function closeAuction(uint256 _auctionId) public onlyOwner {
         Auction memory auction = auctions[_auctionId];
         Offer memory offer = offers[auction.offerId];
 
@@ -452,9 +452,8 @@ contract Engine is Ownable, ReentrancyGuard {
         auction.active=false;
         auctions[_auctionId] = auction;
 
-        offer.isAuction = false;
-
-        offer.amount = offer.amount.add(auction.numCopies);
+        offer.hasBids = false;
+        offer.availableCopies = offer.availableCopies.add(auction.numCopies);
         offers[auction.offerId] = offer;
     }
 
