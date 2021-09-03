@@ -62,7 +62,7 @@ contract("Base1155 token", accounts => {
 
     let balance = await web3.eth.getBalance(engine.address);
 
-    console.log("Balance contract created auction = " + web3.utils.fromWei(balance, 'ether'));
+  //  console.log("Balance contract created auction = " + web3.utils.fromWei(balance, 'ether'));
   });
 
   it("Should create an offer direct sale", async () => {
@@ -100,19 +100,19 @@ contract("Base1155 token", accounts => {
     const resultOffer = await engine.createOffer(instance.address, 1, 1, true, false, 15000, 0, 0, 20, { from: winner });
     assert.equal(resultOffer.receipt.logs[0].args._index, 3);
     let offer = await engine.offers(3);
-    console.log("available items on offer #3 = " + offer.availableCopies);
+ //   console.log("available items on offer #3 = " + offer.availableCopies);
 
     // the second buyer buys the token that previous buyer put on sale
     await engine.buy(3, 1, { from: secondBuyer, value: 15000 });
 
     offer = await engine.offers(3);
-    console.log("available items on offer #3 after selling = " + offer.availableCopies);
+ //   console.log("available items on offer #3 after selling = " + offer.availableCopies);
 
     const ownerResult2 = await instance.balanceOf(winner, 1);
     const artistResult2 = await instance.balanceOf(artist, 1);
     const moneyAfter = await await web3.eth.getBalance(artist);
-    console.log("Balance buyer before " + ownerResult1 + " -- balance buyer after " + ownerResult2);
-    console.log("Balance artist before " + artistResult1 + " -- balance buyer after " + artistResult2 + " *** money before " + moneyBefore + " money after " + moneyAfter);
+ //   console.log("Balance buyer before " + ownerResult1 + " -- balance buyer after " + ownerResult2);
+ //   console.log("Balance artist before " + artistResult1 + " -- balance buyer after " + artistResult2 + " *** money before " + moneyBefore + " money after " + moneyAfter);
   });
 
   it("should fail if try to buy an item when all the copies has been sold", async function () {
@@ -131,10 +131,10 @@ contract("Base1155 token", accounts => {
     let amount = await instance.balanceOf(secondBuyer, 1);
     assert.equal(amount.toNumber(), 1);
 
-    console.log("There are " + offer.availableCopies + " items available on offer #2");
+//    console.log("There are " + offer.availableCopies + " items available on offer #2");
     await engine.buy(2, 1, { from: secondBuyer, value: 15000 });
     offer = await engine.offers(2);
-    console.log("There are " + offer.availableCopies + " items available on offer #2");
+//    console.log("There are " + offer.availableCopies + " items available on offer #2");
 
     amount = await instance.balanceOf(secondBuyer, 1);
     assert.equal(amount.toNumber(), 2);
@@ -171,7 +171,7 @@ contract("Base1155 token", accounts => {
     let userBalanceB = await web3.eth.getBalance(accounts[8]);
     let value = await engine.extractBalance({ from: accounts[8] });
     let userBalanceA = await web3.eth.getBalance(accounts[8]);
-    console.log("Balance before " + userBalanceB + " after " + userBalanceA);
+ //   console.log("Balance before " + userBalanceB + " after " + userBalanceA);
   });
 
   it("calc of gas for minting", async function () {
@@ -232,22 +232,40 @@ contract("Base1155 token", accounts => {
 
   it("Should bid on auction 0", async () => {
     auction = await engine.auctions(0);
-    //   console.log(JSON.stringify(auction))
-    const result = await engine.bid(0, { from: secondBuyer, value: 11000 });
+    console.log(JSON.stringify(auction))
+    const result = await engine.bid(0, 15, { from: secondBuyer, value: 11000 });
 
     const amount = await instance.balanceOf(secondBuyer, 1);
     assert.equal(amount.toNumber(), 2); // tokes not transferred until the auction closes
   });
 
   it("Should bid other person again on auction 0", async () => {
-    const result = await engine.bid(0, { from: thirdBuyer, value: 12000 });
     offer = await engine.offers(6);
-    assert.equal(offer.availableCopies, 90);
+    const result = await engine.bid(0, 15,{ from: thirdBuyer, value: 12000 });
+    assert.equal(offer.availableCopies.toNumber(), 85);
+  });
+
+  it("Should update avaliable count if the bid is for more units", async () => {
+    offer = await engine.offers(6);
+    console.log(JSON.stringify(offer))
+    const result = await engine.bid(0, 16,{ from: secondBuyer, value: 22000 });
+    offer2 = await engine.offers(6);
+    console.log(JSON.stringify(offer))
+    assert.equal(offer2.availableCopies, offer.availableCopies - 1);
+  });
+
+  it("should not allow bids lower than the minimum bid", async function () {
+    try {
+      const result = await engine.bid(0, 16,{ from: thirdBuyer, value: 22001 });
+    }
+    catch (error) {
+      assert.equal(error.reason, "Price is not enough");
+    }
   });
 
   it("should not allow bids lower that best bid", async function () {
     try {
-      await engine.bid(0, { from: secondBuyer, value: 10000 });
+      await engine.bid(0, 15, { from: secondBuyer, value: 10000 });
     }
     catch (error) {
       assert.equal(error.reason, "Price is not enough");
@@ -257,7 +275,7 @@ contract("Base1155 token", accounts => {
   it("should not allow bids and claims on closed offers", async function () {
     try {
       await helper.advanceTimeAndBlock(20); // wait 20 seconds in the blockchain
-      await engine.bid(0, { from: secondBuyer, value: 100000000000000 });
+      await engine.bid(0, 15,{ from: secondBuyer, value: 100000000000000 });
     }
     catch (error) { assert.equal(error.reason, "Auction has ended"); }
   });
@@ -273,13 +291,13 @@ contract("Base1155 token", accounts => {
 
   it("Should close auction 0", async () => {
     auction = await engine.auctions(0);
-    console.log(JSON.stringify(auction))
+   // console.log(JSON.stringify(auction))
 
     let auctionWinner = await engine.getWinner(0);
     let balance = await web3.eth.getBalance(artist);
     let amountIni = await instance.balanceOf(auctionWinner, 5);
 
-    console.log("auction winner = " + auctionWinner + " - balance " + balance + " tokens: " + amountIni);
+  //  console.log("auction winner = " + auctionWinner + " - balance " + balance + " tokens: " + amountIni);
 
     const result = await engine.closeAuction(0,{ from: accounts[8]});
 
@@ -293,7 +311,7 @@ contract("Base1155 token", accounts => {
 
   it("Should create a new auction and a bid once the previous auction on the offer was closed", async () => {
     offer = await engine.offers(6);
-    console.log(JSON.stringify(offer))
+ //   console.log(JSON.stringify(offer))
     const result = await engine.createAuctionAndBid(6, 10, { from: buyer, value: 10000 });
     assert.equal(result.receipt.logs[0].args._index, 1);
   });
@@ -301,13 +319,15 @@ contract("Base1155 token", accounts => {
   it("Should bid on auction 1", async () => {
     auction = await engine.auctions(1);
     //   console.log(JSON.stringify(auction))
-    const result = await engine.bid(1, { from: secondBuyer, value: 11000 });
+    const result = await engine.bid(1, auction.numCopies, { from: secondBuyer, value: 11000 });
   });
 
   it("Should bid again on auction 1", async () => {
-    const result = await engine.bid(1, { from: thirdBuyer, value: 12000 });
     offer = await engine.offers(6);
-    assert.equal(offer.availableCopies, 80);
+    //   console.log(JSON.stringify(offer))
+    const result = await engine.bid(1, auction.numCopies,{ from: thirdBuyer, value: 12000 });
+    offer2 = await engine.offers(6);
+    assert.equal(offer2.availableCopies.toNumber(), offer.availableCopies.toNumber());
   });
 
 
@@ -332,7 +352,7 @@ contract("Base1155 token", accounts => {
 
   it("Should show if an offer hasBids ==false when there is not an auction", async () => {
     const result = await engine.hasBids(7);
-    console.log("hasBids" + result)
+  //  console.log("hasBids" + result)
     assert.notEqual(result, "false");
   });
 
@@ -346,13 +366,16 @@ contract("Base1155 token", accounts => {
 
   it("Should show if an offer has bids when there is an auction", async () => {
     const result = await engine.hasBids(7);
-    console.log("hasBids" + result)
+ //   console.log("hasBids" + result)
     assert.notEqual(result, "true");
   });
 
 
   it("Should bid on auction 2 (resale)", async () => {
-    const result = await engine.bid(2, { from: winner, value: 11000 });
+    auction = await engine.auctions(2);
+    offer = await engine.offers(auction.offerId);
+    console.log("********** available=" + offer.availableCopies + " -- auction.numCopies="+ auction.numCopies + " result="+ (offer.availableCopies-(auction.numCopies+auction.numCopies)));
+    const result = await engine.bid(2, auction.numCopies, { from: winner, value: 11000 });
   });
 
   it("Should close auction 2", async () => {
@@ -379,8 +402,8 @@ contract("Base1155 token", accounts => {
     assert(web3.utils.toBN(balance).sub(web3.utils.toBN(balanceArtistBefore)), 1100); // the royalties must be 10% of 11000 so 1100
     assert(web3.utils.toBN(balanceOwner).sub(web3.utils.toBN(balanceOwnerBefore)), 9900); // as marketplace fee is 0%, what owner gets is 11000 - royalties, so 9900
 
-    console.log("royalties paid " + (web3.utils.toBN(balance).sub(web3.utils.toBN(balanceArtistBefore))));
-    console.log("Balance Owner diff " + web3.utils.toBN(balanceOwner).sub(web3.utils.toBN(balanceOwnerBefore)));
+ //   console.log("royalties paid " + (web3.utils.toBN(balance).sub(web3.utils.toBN(balanceArtistBefore))));
+ //   console.log("Balance Owner diff " + web3.utils.toBN(balanceOwner).sub(web3.utils.toBN(balanceOwnerBefore)));
     //   console.log(JSON.stringify(result));
   });
 
@@ -395,28 +418,28 @@ contract("Base1155 token", accounts => {
   it("Should allow buying in an offer as long the available count >= 0", async () => {
     offer = await engine.offers(6);
    // console.log(JSON.stringify(offer));
-    assert.equal(offer.availableCopies.toNumber(), 80);
+    assert.equal(offer.availableCopies.toNumber(), 74);
     amountTokensOwner = await instance.balanceOf(offer.creator, 5);
-    console.log("amountTokensOwner " + amountTokensOwner.toNumber())
+//    console.log("amountTokensOwner " + amountTokensOwner.toNumber())
     let balanceIni = await web3.eth.getBalance(offer.creator);
     let accumulatedCommisionsBefore  = await engine.accumulatedCommission.call();
-    console.log("offer Comm before=" + web3.utils.fromWei(accumulatedCommisionsBefore));
+  //  console.log("offer Comm before=" + web3.utils.fromWei(accumulatedCommisionsBefore));
 
     const result = await engine.buy(6, 1, { from: buyer, value: web3.utils.toWei('1', 'milli') });
 
     let balanceEnd = await web3.eth.getBalance(offer.creator);
-    console.log(" Balance bidder after " + balanceIni + " -- balance bidder with returning funds " + balanceEnd);
+ //   console.log(" Balance bidder after " + balanceIni + " -- balance bidder with returning funds " + balanceEnd);
   
     let accumulatedCommisions = await engine.accumulatedCommission.call();
-    console.log("offer Comm=" + web3.utils.fromWei(accumulatedCommisions));
+   // console.log("offer Comm=" + web3.utils.fromWei(accumulatedCommisions));
 
     offer = await engine.offers(6);
-    assert.equal(offer.availableCopies.toNumber(), 79);
+    assert.equal(offer.availableCopies.toNumber(), 73);
   });
 
   it("Should update total sales", async () => {
     const result = await engine.totalSales.call();
-    console.log("Total sales " + result)
+  //  console.log("Total sales " + result)
     assert.notEqual(result, 0);
   });
 

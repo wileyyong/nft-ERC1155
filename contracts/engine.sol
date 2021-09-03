@@ -71,7 +71,7 @@ contract Engine is Ownable, ReentrancyGuard {
     {
         Offer memory offer = offers[_offerId];
         require(offer.isAuction == true, "Not in auction");
-     //   require(isActive(_offerId), "Auction has ended");
+        //   require(isActive(_offerId), "Auction has ended");
         require(offer.hasBids == false, "not active auction");
         require(offer.creator != address(0));
         require(
@@ -108,7 +108,7 @@ contract Engine is Ownable, ReentrancyGuard {
         return auctionId;
     }
 
-    function bid(uint256 _auctionId) public payable {
+    function bid(uint256 _auctionId, uint256 _numCopies) public payable {
         Auction memory auction = auctions[_auctionId];
         Offer memory offer = offers[auction.offerId];
         require(offer.isAuction, "Auction is not enabled");
@@ -116,27 +116,33 @@ contract Engine is Ownable, ReentrancyGuard {
         require(isActive(_auctionId), "Auction has ended");
         require(offer.creator != address(0));
         require(msg.value > auction.currentBidAmount, "Price is not enough");
+        require(
+            msg.value >= offer.minimumBidAmount.mul(_numCopies),
+            "Price is not enough"
+        );
+        require(_numCopies >= auction.numCopies, "Error 1");
+        require(
+            offer.availableCopies.add(auction.numCopies).sub(_numCopies) >= 0,
+            "Error 2"
+        );
 
         // return funds to the previuos bidder
+        returnFundsToPreviousOwner(auction);
 
-        (bool success, ) = auction.currentBidOwner.call{
-            value: auction.currentBidAmount
-        }("");
-        require(success, "Transfer failed on bid.");
-        emit ReturnBidFunds(
-            _auctionId,
-            auction.currentBidOwner,
-            auction.currentBidAmount
-        );
+        offer.availableCopies = offer
+            .availableCopies
+            .add(auction.numCopies)
+            .sub(_numCopies);
+        offers[auction.offerId] = offer;
 
         auction.currentBidAmount = msg.value;
         auction.currentBidOwner = payable(msg.sender);
         auction.bidCount = auction.bidCount.add(1);
+        auction.numCopies = _numCopies;
         auctions[_auctionId] = auction;
-        
     }
 
-    function closeAuction(uint256 _auctionId) public onlyOwner {
+    function closeAuctionAndTransfer(uint256 _auctionId) internal {
         Auction memory auction = auctions[_auctionId];
         Offer memory offer = offers[auction.offerId];
 
@@ -177,7 +183,7 @@ contract Engine is Ownable, ReentrancyGuard {
         if (creatorNFT != offer.creator) {
             // It is a resale. Transfer royalties
             royaltiesToPay =
-                (auction.currentBidAmount * asset.getRoyalties(offer.tokenId)) / 
+                (auction.currentBidAmount * asset.getRoyalties(offer.tokenId)) /
                 10000;
             (bool success, ) = creatorNFT.call{value: royaltiesToPay}("");
             require(success, "Transfer failed.");
@@ -210,6 +216,10 @@ contract Engine is Ownable, ReentrancyGuard {
 
         offer.hasBids = false;
         offers[auction.offerId] = offer;
+    }
+
+    function closeAuction(uint256 _auctionId) public onlyOwner {
+        closeAuctionAndTransfer(_auctionId);
     }
 
     // Creates an offer that could be direct sale and/or auction for a certain amount of a token
@@ -256,20 +266,15 @@ contract Engine is Ownable, ReentrancyGuard {
         return offer.hasBids;
     }
 
-  /*  function getOffersCount() public view returns (uint256) {
-        return offers.length;
-    }*/
-
     function ahora() public view returns (uint256) {
         return block.timestamp;
     }
 
-    /*function getEndDate(uint256 _offerId) public view returns (uint256) {
-        Offer memory offer = offers[_offerId];
-        return offer.startTime + offer.duration;
-    }*/
-
-    function removeFromAuctionOrSale(uint256 _offerId, bool _sale, bool _auction) public {
+    function removeFromAuctionOrSale(
+        uint256 _offerId,
+        bool _sale,
+        bool _auction
+    ) public {
         Offer memory offer = offers[_offerId];
         require(msg.sender == offer.creator, "You are not the owner");
         require(offer.hasBids == false, "Bids existing");
@@ -277,13 +282,6 @@ contract Engine is Ownable, ReentrancyGuard {
         offer.isOnSale = _sale;
         offers[_offerId] = offer;
     }
-
-  /*  function removeFromSale(uint256 _offerId) public {
-        Offer memory offer = offers[_offerId];
-        require(msg.sender == offer.creator, "You are not the owner");
-        offer.isOnSale = false;
-        offers[_offerId] = offer;
-    }*/
 
     // Changes the default commission. Only the owner of the marketplace can do that. In basic points
     function setCommission(uint256 _commission) public onlyOwner {
@@ -315,7 +313,7 @@ contract Engine is Ownable, ReentrancyGuard {
             "Not enough copies available"
         );
         uint256 price = offer.price;
-        require(paidPrice >= price.mul(_amount), "Price is not enough");        
+        require(paidPrice >= price.mul(_amount), "Price is not enough");
 
         Base1155 asset = Base1155(offer.tokenAddress);
         require(
@@ -328,7 +326,7 @@ contract Engine is Ownable, ReentrancyGuard {
         );
 
         emit Claim(_offerId, buyer);
-        
+
         asset.safeTransferFrom(
             offer.creator,
             msg.sender,
@@ -368,7 +366,7 @@ contract Engine is Ownable, ReentrancyGuard {
         );
 
         accumulatedCommission += commissionToPay;
-        totalSales = totalSales.add(paidPrice);        
+        totalSales = totalSales.add(paidPrice);
 
         offer.availableCopies = offer.availableCopies.sub(_amount);
 
@@ -379,7 +377,7 @@ contract Engine is Ownable, ReentrancyGuard {
 
         offers[_offerId] = offer;
     }
-  
+
     function isActive(uint256 _auctionId) public view returns (bool) {
         return getStatus(_auctionId) == Status.active;
     }
@@ -400,7 +398,7 @@ contract Engine is Ownable, ReentrancyGuard {
     }
 
     function endDate(uint256 _auctionId) public view returns (uint256) {
-         Auction storage auction = auctions[_auctionId];
+        Auction storage auction = auctions[_auctionId];
         return auction.startTime.add(auction.duration);
     }
 
@@ -425,10 +423,7 @@ contract Engine is Ownable, ReentrancyGuard {
     }
 
     function getWinner(uint256 _auctionId) public view returns (address) {
-        require(
-            isFinished(_auctionId),
-            "Auction not finished yet"
-        );
+        require(isFinished(_auctionId), "Auction not finished yet");
         return auctions[_auctionId].currentBidOwner;
     }
 
@@ -436,31 +431,40 @@ contract Engine is Ownable, ReentrancyGuard {
     This will cancel the auction. If the auction has bids, it
     will return the bidded amount to the bidder before closing the auction
  */
-       function forceAuctionEnding(uint256 _auctionId) public onlyOwner nonReentrant {
-           Auction memory auction = auctions[_auctionId];
+    function forceAuctionEnding(uint256 _auctionId)
+        public
+        onlyOwner
+        nonReentrant
+    {
+        require(!isFinished(_auctionId), "Auction is finished");
+        Auction memory auction = auctions[_auctionId];
         Offer storage offer = offers[auction.offerId];
-            if (
-                auction.currentBidAmount != 0 &&
-                auction.currentBidOwner != address(0)
-            ) {
-                // return funds to the previuos bidder, if there is a previous bid
-                (bool success, ) = auction.currentBidOwner.call{
-                    value: auction.currentBidAmount
-                }("");
-                require(success, "Transfer failed.");
-                emit ReturnBidFunds(
-                    auction.offerId,
-                    auction.currentBidOwner,
-                    auction.currentBidAmount
-                );
-            }
-        
-        auction.active=false;
+        if (
+            auction.currentBidAmount != 0 &&
+            auction.currentBidOwner != address(0)
+        ) {
+            // return funds to the previuos bidder, if there is a previous bid
+            returnFundsToPreviousOwner(auction);
+        }
+
+        auction.active = false;
         auctions[_auctionId] = auction;
 
         offer.hasBids = false;
         offer.availableCopies = offer.availableCopies.add(auction.numCopies);
         offers[auction.offerId] = offer;
+    }
+
+    function returnFundsToPreviousOwner(Auction memory _auction) internal {
+        (bool success, ) = _auction.currentBidOwner.call{
+            value: _auction.currentBidAmount
+        }("");
+        require(success, "Transfer failed.");
+        emit ReturnBidFunds(
+            _auction.offerId,
+            _auction.currentBidOwner,
+            _auction.currentBidAmount
+        );
     }
 
     function extractBalance() public onlyOwner nonReentrant {
