@@ -10,12 +10,12 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 contract Engine is Ownable, ReentrancyGuard {
     using SafeMath for uint256;
 
-    event OfferCreated(uint256 _index, address _creator, uint256 _tokenId);
-    event AuctionBid(uint256 _index, address _bidder, uint256 amount);
+    event OfferCreated(uint256 _index, uint256 _tokenId, uint256 numCopies, uint256 amount, bool isSale);
+    event AuctionBid(uint256 _index, address _bidder, uint256 _price, uint256 _numCopies, uint256 _tokenId);
     event Claim(uint256 auctionIndex, address claimer);
-    event ReturnBidFunds(uint256 _index, address _bidder, uint256 amount);
+ //   event ReturnBidFunds(uint256 _index, address _bidder, uint256 amount);
 
-    event Royalties(address receiver, uint256 amount);
+ //   event Royalties(address receiver, uint256 amount);
     event PaymentToOwner(
         address receiver,
         uint256 amount,
@@ -104,7 +104,7 @@ contract Engine is Ownable, ReentrancyGuard {
         offer.availableCopies = offer.availableCopies.sub(_numCopies);
         offers[_offerId] = offer;
 
-        emit AuctionBid(auctionId, msg.sender, msg.value);
+        emit AuctionBid(auctionId, msg.sender, msg.value, _numCopies, offer.tokenId);
         return auctionId;
     }
 
@@ -188,7 +188,7 @@ contract Engine is Ownable, ReentrancyGuard {
             (bool success, ) = creatorNFT.call{value: royaltiesToPay}("");
             require(success, "Transfer failed.");
 
-            emit Royalties(creatorNFT, royaltiesToPay);
+           // emit Royalties(creatorNFT, royaltiesToPay);
         }
         uint256 amountToPay = auction.currentBidAmount -
             commissionToPay -
@@ -257,7 +257,7 @@ contract Engine is Ownable, ReentrancyGuard {
         offers.push(offer);
         uint256 index = offers.length - 1;
 
-        emit OfferCreated(index, msg.sender, _tokenId);
+        emit OfferCreated(index, _tokenId, _amount, _price, _isDirectSale);
         return index;
     }
 
@@ -351,7 +351,7 @@ contract Engine is Ownable, ReentrancyGuard {
             (bool success, ) = creatorNFT.call{value: royaltiesToPay}("");
             require(success, "Transfer failed.");
 
-            emit Royalties(creatorNFT, royaltiesToPay);
+        //    emit Royalties(creatorNFT, royaltiesToPay);
         }
         uint256 amountToPay = paidPrice - commissionToPay - royaltiesToPay;
 
@@ -460,11 +460,11 @@ contract Engine is Ownable, ReentrancyGuard {
             value: _auction.currentBidAmount
         }("");
         require(success, "Transfer failed.");
-        emit ReturnBidFunds(
+     /*   emit ReturnBidFunds(
             _auction.offerId,
             _auction.currentBidOwner,
             _auction.currentBidAmount
-        );
+        );*/
     }
 
     function extractBalance() public onlyOwner nonReentrant {
