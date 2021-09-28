@@ -13,7 +13,7 @@ contract Engine is Ownable, ReentrancyGuard {
     event OfferCreated(uint256 _index, uint256 _tokenId, uint256 numCopies, uint256 amount, bool isSale);
     event AuctionBid(uint256 _index, address _bidder, uint256 _price, uint256 _numCopies, uint256 _tokenId);
     event Claim(uint256 auctionIndex, address claimer);
- //   event ReturnBidFunds(uint256 _index, address _bidder, uint256 amount);
+  //  event ReturnBidFunds(uint256 _index, address _bidder, uint256 amount);
 
  //   event Royalties(address receiver, uint256 amount);
     event PaymentToOwner(
@@ -460,7 +460,7 @@ contract Engine is Ownable, ReentrancyGuard {
             value: _auction.currentBidAmount
         }("");
         require(success, "Transfer failed.");
-     /*   emit ReturnBidFunds(
+    /*   emit ReturnBidFunds(
             _auction.offerId,
             _auction.currentBidOwner,
             _auction.currentBidAmount

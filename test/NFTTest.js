@@ -232,7 +232,7 @@ contract("Base1155 token", accounts => {
 
   it("Should bid on auction 0", async () => {
     auction = await engine.auctions(0);
-    console.log(JSON.stringify(auction))
+  //  console.log(JSON.stringify(auction))
     const result = await engine.bid(0, 15, { from: secondBuyer, value: 11000 });
 
     const amount = await instance.balanceOf(secondBuyer, 1);
@@ -240,8 +240,17 @@ contract("Base1155 token", accounts => {
   });
 
   it("Should bid other person again on auction 0", async () => {
-    offer = await engine.offers(6);
+    
+    auction = await engine.auctions(0);
+    offer = await engine.offers(auction.offerId);
+    console.log("********** available=" + offer.availableCopies + " -- auction.numCopies="+ auction.numCopies + " result="+ (offer.availableCopies-(auction.numCopies)) + " offerId="+ auction.offerId);
+  
     const result = await engine.bid(0, 15,{ from: thirdBuyer, value: 12000 });
+
+    auction = await engine.auctions(0);
+    offer = await engine.offers(auction.offerId);
+    console.log("********** available=" + offer.availableCopies + " -- auction.numCopies="+ auction.numCopies + " result="+ (offer.availableCopies-(auction.numCopies)) + " offerId="+ auction.offerId);
+  
     assert.equal(offer.availableCopies.toNumber(), 85);
   });
 
@@ -250,7 +259,7 @@ contract("Base1155 token", accounts => {
     console.log(JSON.stringify(offer))
     const result = await engine.bid(0, 16,{ from: secondBuyer, value: 22000 });
     offer2 = await engine.offers(6);
-    console.log(JSON.stringify(offer))
+    console.log(JSON.stringify(offer2))
     assert.equal(offer2.availableCopies, offer.availableCopies - 1);
   });
 
@@ -358,10 +367,10 @@ contract("Base1155 token", accounts => {
 
 
   it("Should create an auction and a bid for a resale", async () => {
-    const result = await engine.createAuctionAndBid(7, 2, { from: buyer, value: 8000 });
+    const result = await engine.createAuctionAndBid(7, 1, { from: buyer, value: 8000 });
     assert.equal(result.receipt.logs[0].args._index, 2);
     offer = await engine.offers(7);
-    assert.equal(offer.availableCopies, 0);
+    assert.equal(offer.availableCopies, 1);
   });
 
   it("Should show if an offer has bids when there is an auction", async () => {
@@ -372,10 +381,25 @@ contract("Base1155 token", accounts => {
 
 
   it("Should bid on auction 2 (resale)", async () => {
-    auction = await engine.auctions(2);
-    offer = await engine.offers(auction.offerId);
-    console.log("********** available=" + offer.availableCopies + " -- auction.numCopies="+ auction.numCopies + " result="+ (offer.availableCopies-(auction.numCopies+auction.numCopies)));
-    const result = await engine.bid(2, auction.numCopies, { from: winner, value: 11000 });
+    let auction = await engine.auctions(2);
+    let offer = await engine.offers(auction.offerId);
+    console.log("Valor=" + auction.numCopies-auction.numCopies+offer.availableCopies);
+    console.log("********** available=" + offer.availableCopies + " -- auction.numCopies="+ auction.numCopies + " result="+ (offer.availableCopies+auction.numCopies-auction.numCopies ));
+
+    console.log(JSON.stringify(auction));
+    console.log(JSON.stringify(offer));
+    const result = await engine.bid(2, 2  , { from: secondBuyer, value: 10000 });
+  });
+
+  it("Should bid on auction 2 a higher amount (resale)", async () => {
+    let auction = await engine.auctions(2);
+    let offer = await engine.offers(auction.offerId);
+    console.log("Valor=" + auction.numCopies-auction.numCopies+offer.availableCopies);
+    console.log("********** available=" + offer.availableCopies + " -- auction.numCopies="+ auction.numCopies + " result="+ (offer.availableCopies+auction.numCopies-auction.numCopies ));
+
+    console.log(JSON.stringify(auction));
+    console.log(JSON.stringify(offer));
+    const result = await engine.bid(2, 2  , { from: winner, value: 11000 });
   });
 
   it("Should close auction 2", async () => {
