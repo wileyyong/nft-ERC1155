@@ -277,7 +277,7 @@ contract("Base1155 token", accounts => {
       await engine.bid(0, 15, { from: secondBuyer, value: 10000 });
     }
     catch (error) {
-      assert.equal(error.reason, "Price is not enough");
+      assert.equal(error.reason, "Price not enough");
     }
   });
 

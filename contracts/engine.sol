@@ -115,10 +115,10 @@ contract Engine is Ownable, ReentrancyGuard {
         require(auction.active, "Auction is not active");
         require(isActive(_auctionId), "Auction has ended");
         require(offer.creator != address(0));
-        require(msg.value > auction.currentBidAmount, "Price is not enough");
+        require(msg.value > auction.currentBidAmount, "Price not enough");
         require(
             msg.value >= offer.minimumBidAmount.mul(_numCopies),
-            "Price is not enough"
+            "Price 1" 
         );
         require(_numCopies >= auction.numCopies, "Error 1");
         require(
@@ -431,7 +431,7 @@ contract Engine is Ownable, ReentrancyGuard {
     This will cancel the auction. If the auction has bids, it
     will return the bidded amount to the bidder before closing the auction
  */
-    function forceAuctionEnding(uint256 _auctionId)
+   /* function forceAuctionEnding(uint256 _auctionId)
         public
         onlyOwner
         nonReentrant
@@ -453,7 +453,7 @@ contract Engine is Ownable, ReentrancyGuard {
         offer.hasBids = false;
         offer.availableCopies = offer.availableCopies.add(auction.numCopies);
         offers[auction.offerId] = offer;
-    }
+    }*/
 
     function returnFundsToPreviousOwner(Auction memory _auction) internal {
         (bool success, ) = _auction.currentBidOwner.call{
