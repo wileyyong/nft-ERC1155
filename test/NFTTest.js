@@ -421,6 +421,9 @@ contract("Base1155 token", accounts => {
     let offer = await engine.offers(auction.offerId);
     assert.equal(offer.hasBids, false);    
 
+    let hasBids = await engine.hasBids(auction.offerId);
+    assert.equal(offer.hasBids, false);   
+
     balance = await web3.eth.getBalance(artist);
     amountTokensWinnerAfter = await instance.balanceOf(winner, 5);
     amountTokensOwner = await instance.balanceOf(secondBuyer, 5);
