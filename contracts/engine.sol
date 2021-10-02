@@ -153,7 +153,7 @@ contract Engine is Ownable, ReentrancyGuard {
         Base1155 asset = Base1155(offer.tokenAddress);
 
         require(
-            asset.balanceOf(offer.creator, offer.tokenId) >= offer.amount,
+            asset.balanceOf(offer.creator, offer.tokenId) >= auction.numCopies,
             "Owner did not have enough tokens"
         );
         require(
