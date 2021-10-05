@@ -132,7 +132,9 @@ contract("Base1155 token", accounts => {
     assert.equal(amount.toNumber(), 1);
 
 //    console.log("There are " + offer.availableCopies + " items available on offer #2");
-    await engine.buy(2, 1, { from: secondBuyer, value: 15000 });
+receipt = await engine.buy(2, 1, { from: secondBuyer, value: 15000 });
+let gasUsed = receipt.receipt.gasUsed;
+console.log(`Total GasUsed on buy: ${gasUsed}`);
     offer = await engine.offers(2);
 //    console.log("There are " + offer.availableCopies + " items available on offer #2");
 
