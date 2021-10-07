@@ -79,7 +79,25 @@ module.exports = {
    //   gas: 5000000,
       gasPrice: 165000000000,
       network_id: 1
-    }
+    },
+    
+  
+    maticVigil: {
+      provider: () => new HDWalletProvider(
+        mnemonic,
+        `https://rpc-mumbai.maticvigil.com/v1/153a2a693678a63ca32c29a331112f3247b5a72a`,        
+      ),
+      network_id: 80001,
+    },
+   
+    bscTestnet: {
+      provider: () => new HDWalletProvider(mnemonic, `https://data-seed-prebsc-1-s1.binance.org:8545`),
+      network_id: 97,
+      confirmations: 10,
+      timeoutBlocks: 200,
+      skipDryRun: true
+    },
+
     // Another network with more advanced options...
     // advanced: {
     // port: 8777,             // Custom port
