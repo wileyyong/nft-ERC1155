@@ -19543,37 +19543,37 @@
     "absolutePath": "/home/linux/ether/XSigma1155/contracts/Base1155.sol",
     "exportedSymbols": {
       "Address": [
-        3121
+        3119
       ],
       "Base1155": [
         118
       ],
       "Context": [
-        3144
+        3142
       ],
       "Counters": [
-        3205
+        3203
       ],
       "ERC1155": [
-        2647
+        2645
       ],
       "ERC165": [
-        3229
+        3227
       ],
       "IERC1155": [
-        2769
+        2767
       ],
       "IERC1155MetadataURI": [
-        2825
+        2823
       ],
       "IERC1155Receiver": [
-        2810
+        2808
       ],
       "IERC165": [
-        3241
+        3239
       ],
       "Ownable": [
-        1574
+        1572
       ]
     },
     "id": 119,
@@ -19598,7 +19598,7 @@
         "nameLocation": "-1:-1:-1",
         "nodeType": "ImportDirective",
         "scope": 119,
-        "sourceUnit": 2648,
+        "sourceUnit": 2646,
         "src": "65:59:0",
         "symbolAliases": [],
         "unitAlias": ""
@@ -19610,7 +19610,7 @@
         "nameLocation": "-1:-1:-1",
         "nodeType": "ImportDirective",
         "scope": 119,
-        "sourceUnit": 3206,
+        "sourceUnit": 3204,
         "src": "125:52:0",
         "symbolAliases": [],
         "unitAlias": ""
@@ -19622,7 +19622,7 @@
         "nameLocation": "-1:-1:-1",
         "nodeType": "ImportDirective",
         "scope": 119,
-        "sourceUnit": 1575,
+        "sourceUnit": 1573,
         "src": "178:52:0",
         "symbolAliases": [],
         "unitAlias": ""
@@ -19635,7 +19635,7 @@
               "id": 5,
               "name": "ERC1155",
               "nodeType": "IdentifierPath",
-              "referencedDeclaration": 2647,
+              "referencedDeclaration": 2645,
               "src": "253:7:0"
             },
             "id": 6,
@@ -19647,7 +19647,7 @@
               "id": 7,
               "name": "Ownable",
               "nodeType": "IdentifierPath",
-              "referencedDeclaration": 1574,
+              "referencedDeclaration": 1572,
               "src": "262:7:0"
             },
             "id": 8,
@@ -19661,13 +19661,13 @@
         "id": 118,
         "linearizedBaseContracts": [
           118,
-          1574,
-          2647,
-          2825,
-          2769,
-          3229,
-          3241,
-          3144
+          1572,
+          2645,
+          2823,
+          2767,
+          3227,
+          3239,
+          3142
         ],
         "name": "Base1155",
         "nameLocation": "241:8:0",
@@ -19679,7 +19679,7 @@
               "id": 9,
               "name": "Counters",
               "nodeType": "IdentifierPath",
-              "referencedDeclaration": 3205,
+              "referencedDeclaration": 3203,
               "src": "282:8:0"
             },
             "nodeType": "UsingForDirective",
@@ -19691,13 +19691,13 @@
                 "id": 10,
                 "name": "Counters.Counter",
                 "nodeType": "IdentifierPath",
-                "referencedDeclaration": 3150,
+                "referencedDeclaration": 3148,
                 "src": "295:16:0"
               },
-              "referencedDeclaration": 3150,
+              "referencedDeclaration": 3148,
               "src": "295:16:0",
               "typeDescriptions": {
-                "typeIdentifier": "t_struct$_Counter_$3150_storage_ptr",
+                "typeIdentifier": "t_struct$_Counter_$3148_storage_ptr",
                 "typeString": "struct Counters.Counter"
               }
             }
@@ -19714,7 +19714,7 @@
             "stateVariable": true,
             "storageLocation": "default",
             "typeDescriptions": {
-              "typeIdentifier": "t_struct$_Counter_$3150_storage",
+              "typeIdentifier": "t_struct$_Counter_$3148_storage",
               "typeString": "struct Counters.Counter"
             },
             "typeName": {
@@ -19724,13 +19724,13 @@
                 "id": 13,
                 "name": "Counters.Counter",
                 "nodeType": "IdentifierPath",
-                "referencedDeclaration": 3150,
+                "referencedDeclaration": 3148,
                 "src": "317:16:0"
               },
-              "referencedDeclaration": 3150,
+              "referencedDeclaration": 3148,
               "src": "317:16:0",
               "typeDescriptions": {
-                "typeIdentifier": "t_struct$_Counter_$3150_storage_ptr",
+                "typeIdentifier": "t_struct$_Counter_$3148_storage_ptr",
                 "typeString": "struct Counters.Counter"
               }
             },
@@ -19920,7 +19920,7 @@
                   "id": 29,
                   "name": "ERC1155",
                   "nodeType": "IdentifierPath",
-                  "referencedDeclaration": 2647,
+                  "referencedDeclaration": 2645,
                   "src": "777:7:0"
                 },
                 "nodeType": "ModifierInvocation",
@@ -19967,7 +19967,7 @@
                         "referencedDeclaration": 15,
                         "src": "1034:9:0",
                         "typeDescriptions": {
-                          "typeIdentifier": "t_struct$_Counter_$3150_storage",
+                          "typeIdentifier": "t_struct$_Counter_$3148_storage",
                           "typeString": "struct Counters.Counter storage ref"
                         }
                       },
@@ -19978,10 +19978,10 @@
                       "lValueRequested": false,
                       "memberName": "increment",
                       "nodeType": "MemberAccess",
-                      "referencedDeclaration": 3176,
+                      "referencedDeclaration": 3174,
                       "src": "1034:19:0",
                       "typeDescriptions": {
-                        "typeIdentifier": "t_function_internal_nonpayable$_t_struct$_Counter_$3150_storage_ptr_$returns$__$bound_to$_t_struct$_Counter_$3150_storage_ptr_$",
+                        "typeIdentifier": "t_function_internal_nonpayable$_t_struct$_Counter_$3148_storage_ptr_$returns$__$bound_to$_t_struct$_Counter_$3148_storage_ptr_$",
                         "typeString": "function (struct Counters.Counter storage pointer)"
                       }
                     },
@@ -20050,7 +20050,7 @@
                         "referencedDeclaration": 15,
                         "src": "1085:9:0",
                         "typeDescriptions": {
-                          "typeIdentifier": "t_struct$_Counter_$3150_storage",
+                          "typeIdentifier": "t_struct$_Counter_$3148_storage",
                           "typeString": "struct Counters.Counter storage ref"
                         }
                       },
@@ -20061,10 +20061,10 @@
                       "lValueRequested": false,
                       "memberName": "current",
                       "nodeType": "MemberAccess",
-                      "referencedDeclaration": 3162,
+                      "referencedDeclaration": 3160,
                       "src": "1085:17:0",
                       "typeDescriptions": {
-                        "typeIdentifier": "t_function_internal_view$_t_struct$_Counter_$3150_storage_ptr_$returns$_t_uint256_$bound_to$_t_struct$_Counter_$3150_storage_ptr_$",
+                        "typeIdentifier": "t_function_internal_view$_t_struct$_Counter_$3148_storage_ptr_$returns$_t_uint256_$bound_to$_t_struct$_Counter_$3148_storage_ptr_$",
                         "typeString": "function (struct Counters.Counter storage pointer) view returns (uint256)"
                       }
                     },
@@ -20179,7 +20179,7 @@
                       "name": "_mint",
                       "nodeType": "Identifier",
                       "overloadedDeclarations": [],
-                      "referencedDeclaration": 2180,
+                      "referencedDeclaration": 2178,
                       "src": "1164:5:0",
                       "typeDescriptions": {
                         "typeIdentifier": "t_function_internal_nonpayable$_t_address_$_t_uint256_$_t_uint256_$_t_bytes_memory_ptr_$returns$__$",
@@ -20972,37 +20972,37 @@
     "absolutePath": "/home/linux/ether/XSigma1155/contracts/Base1155.sol",
     "exportedSymbols": {
       "Address": [
-        3121
+        3119
       ],
       "Base1155": [
         118
       ],
       "Context": [
-        3144
+        3142
       ],
       "Counters": [
-        3205
+        3203
       ],
       "ERC1155": [
-        2647
+        2645
       ],
       "ERC165": [
-        3229
+        3227
       ],
       "IERC1155": [
-        2769
+        2767
       ],
       "IERC1155MetadataURI": [
-        2825
+        2823
       ],
       "IERC1155Receiver": [
-        2810
+        2808
       ],
       "IERC165": [
-        3241
+        3239
       ],
       "Ownable": [
-        1574
+        1572
       ]
     },
     "id": 119,
@@ -21027,7 +21027,7 @@
         "nameLocation": "-1:-1:-1",
         "nodeType": "ImportDirective",
         "scope": 119,
-        "sourceUnit": 2648,
+        "sourceUnit": 2646,
         "src": "65:59:0",
         "symbolAliases": [],
         "unitAlias": ""
@@ -21039,7 +21039,7 @@
         "nameLocation": "-1:-1:-1",
         "nodeType": "ImportDirective",
         "scope": 119,
-        "sourceUnit": 3206,
+        "sourceUnit": 3204,
         "src": "125:52:0",
         "symbolAliases": [],
         "unitAlias": ""
@@ -21051,7 +21051,7 @@
         "nameLocation": "-1:-1:-1",
         "nodeType": "ImportDirective",
         "scope": 119,
-        "sourceUnit": 1575,
+        "sourceUnit": 1573,
         "src": "178:52:0",
         "symbolAliases": [],
         "unitAlias": ""
@@ -21064,7 +21064,7 @@
               "id": 5,
               "name": "ERC1155",
               "nodeType": "IdentifierPath",
-              "referencedDeclaration": 2647,
+              "referencedDeclaration": 2645,
               "src": "253:7:0"
             },
             "id": 6,
@@ -21076,7 +21076,7 @@
               "id": 7,
               "name": "Ownable",
               "nodeType": "IdentifierPath",
-              "referencedDeclaration": 1574,
+              "referencedDeclaration": 1572,
               "src": "262:7:0"
             },
             "id": 8,
@@ -21090,13 +21090,13 @@
         "id": 118,
         "linearizedBaseContracts": [
           118,
-          1574,
-          2647,
-          2825,
-          2769,
-          3229,
-          3241,
-          3144
+          1572,
+          2645,
+          2823,
+          2767,
+          3227,
+          3239,
+          3142
         ],
         "name": "Base1155",
         "nameLocation": "241:8:0",
@@ -21108,7 +21108,7 @@
               "id": 9,
               "name": "Counters",
               "nodeType": "IdentifierPath",
-              "referencedDeclaration": 3205,
+              "referencedDeclaration": 3203,
               "src": "282:8:0"
             },
             "nodeType": "UsingForDirective",
@@ -21120,13 +21120,13 @@
                 "id": 10,
                 "name": "Counters.Counter",
                 "nodeType": "IdentifierPath",
-                "referencedDeclaration": 3150,
+                "referencedDeclaration": 3148,
                 "src": "295:16:0"
               },
-              "referencedDeclaration": 3150,
+              "referencedDeclaration": 3148,
               "src": "295:16:0",
               "typeDescriptions": {
-                "typeIdentifier": "t_struct$_Counter_$3150_storage_ptr",
+                "typeIdentifier": "t_struct$_Counter_$3148_storage_ptr",
                 "typeString": "struct Counters.Counter"
               }
             }
@@ -21143,7 +21143,7 @@
             "stateVariable": true,
             "storageLocation": "default",
             "typeDescriptions": {
-              "typeIdentifier": "t_struct$_Counter_$3150_storage",
+              "typeIdentifier": "t_struct$_Counter_$3148_storage",
               "typeString": "struct Counters.Counter"
             },
             "typeName": {
@@ -21153,13 +21153,13 @@
                 "id": 13,
                 "name": "Counters.Counter",
                 "nodeType": "IdentifierPath",
-                "referencedDeclaration": 3150,
+                "referencedDeclaration": 3148,
                 "src": "317:16:0"
               },
-              "referencedDeclaration": 3150,
+              "referencedDeclaration": 3148,
               "src": "317:16:0",
               "typeDescriptions": {
-                "typeIdentifier": "t_struct$_Counter_$3150_storage_ptr",
+                "typeIdentifier": "t_struct$_Counter_$3148_storage_ptr",
                 "typeString": "struct Counters.Counter"
               }
             },
@@ -21349,7 +21349,7 @@
                   "id": 29,
                   "name": "ERC1155",
                   "nodeType": "IdentifierPath",
-                  "referencedDeclaration": 2647,
+                  "referencedDeclaration": 2645,
                   "src": "777:7:0"
                 },
                 "nodeType": "ModifierInvocation",
@@ -21396,7 +21396,7 @@
                         "referencedDeclaration": 15,
                         "src": "1034:9:0",
                         "typeDescriptions": {
-                          "typeIdentifier": "t_struct$_Counter_$3150_storage",
+                          "typeIdentifier": "t_struct$_Counter_$3148_storage",
                           "typeString": "struct Counters.Counter storage ref"
                         }
                       },
@@ -21407,10 +21407,10 @@
                       "lValueRequested": false,
                       "memberName": "increment",
                       "nodeType": "MemberAccess",
-                      "referencedDeclaration": 3176,
+                      "referencedDeclaration": 3174,
                       "src": "1034:19:0",
                       "typeDescriptions": {
-                        "typeIdentifier": "t_function_internal_nonpayable$_t_struct$_Counter_$3150_storage_ptr_$returns$__$bound_to$_t_struct$_Counter_$3150_storage_ptr_$",
+                        "typeIdentifier": "t_function_internal_nonpayable$_t_struct$_Counter_$3148_storage_ptr_$returns$__$bound_to$_t_struct$_Counter_$3148_storage_ptr_$",
                         "typeString": "function (struct Counters.Counter storage pointer)"
                       }
                     },
@@ -21479,7 +21479,7 @@
                         "referencedDeclaration": 15,
                         "src": "1085:9:0",
                         "typeDescriptions": {
-                          "typeIdentifier": "t_struct$_Counter_$3150_storage",
+                          "typeIdentifier": "t_struct$_Counter_$3148_storage",
                           "typeString": "struct Counters.Counter storage ref"
                         }
                       },
@@ -21490,10 +21490,10 @@
                       "lValueRequested": false,
                       "memberName": "current",
                       "nodeType": "MemberAccess",
-                      "referencedDeclaration": 3162,
+                      "referencedDeclaration": 3160,
                       "src": "1085:17:0",
                       "typeDescriptions": {
-                        "typeIdentifier": "t_function_internal_view$_t_struct$_Counter_$3150_storage_ptr_$returns$_t_uint256_$bound_to$_t_struct$_Counter_$3150_storage_ptr_$",
+                        "typeIdentifier": "t_function_internal_view$_t_struct$_Counter_$3148_storage_ptr_$returns$_t_uint256_$bound_to$_t_struct$_Counter_$3148_storage_ptr_$",
                         "typeString": "function (struct Counters.Counter storage pointer) view returns (uint256)"
                       }
                     },
@@ -21608,7 +21608,7 @@
                       "name": "_mint",
                       "nodeType": "Identifier",
                       "overloadedDeclarations": [],
-                      "referencedDeclaration": 2180,
+                      "referencedDeclaration": 2178,
                       "src": "1164:5:0",
                       "typeDescriptions": {
                         "typeIdentifier": "t_function_internal_nonpayable$_t_address_$_t_uint256_$_t_uint256_$_t_bytes_memory_ptr_$returns$__$",
@@ -22543,8 +22543,8 @@
         }
       },
       "links": {},
-      "address": "0xb11e3CB9d33C56126B5Cff5FEA9cB2903869C2eC",
-      "transactionHash": "0xc499872c8b09a3bd483b62f9bf8accbb51cde2c16a02ef7fc1c6556b1aad451c"
+      "address": "0x0712Fc2fC90F2B71a77538266adA5bfAcE0541F8",
+      "transactionHash": "0x27017e467ca7ee0b53c12c5801ec855c35e3788c568875ea7d0002d161d0acea"
     },
     "97": {
       "events": {},
@@ -22566,7 +22566,7 @@
     }
   },
   "schemaVersion": "3.3.4",
-  "updatedAt": "2021-10-06T08:40:19.939Z",
+  "updatedAt": "2021-11-15T15:10:52.683Z",
   "networkType": "ethereum",
   "devdoc": {
     "kind": "dev",
