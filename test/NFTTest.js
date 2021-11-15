@@ -300,7 +300,7 @@ console.log(`Total GasUsed on buy: ${gasUsed}`);
     catch (error) { assert.equal(error.reason, "not active auction"); }
   });
 
-  it("Should close auction 0", async () => {
+  it("Should close auction 0. Anyone can close the auction", async () => {
     auction = await engine.auctions(0);
    // console.log(JSON.stringify(auction))
 
@@ -310,7 +310,7 @@ console.log(`Total GasUsed on buy: ${gasUsed}`);
 
   //  console.log("auction winner = " + auctionWinner + " - balance " + balance + " tokens: " + amountIni);
 
-    const result = await engine.closeAuction(0,{ from: accounts[8]});
+    const result = await engine.closeAuction(0,{ from: accounts[9]});
 
     balance = await web3.eth.getBalance(artist);
     amountEnd = await instance.balanceOf(auctionWinner, 5);

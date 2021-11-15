@@ -218,7 +218,7 @@ contract Engine is Ownable, ReentrancyGuard {
         offers[auction.offerId] = offer;
     }
 
-    function closeAuction(uint256 _auctionId) public onlyOwner {
+    function closeAuction(uint256 _auctionId) public {
         closeAuctionAndTransfer(_auctionId);
     }
 
