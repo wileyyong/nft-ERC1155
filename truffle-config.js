@@ -87,7 +87,7 @@ module.exports = {
           `https://mainnet.infura.io/v3/${projectId}`,
         chainId: 1,
       }),
-      gasPrice: 165000000000,
+      gasPrice: web3.utils.toWei('20', 'gwei'), // check in ethgasstation.info the gas price and tip
       network_id: 1
     },
 
