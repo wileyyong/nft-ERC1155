@@ -23,6 +23,8 @@
 //
 // const fs = require('fs');
 // const mnemonic = fs.readFileSync(".secret").toString().trim();
+const Web3 = require("web3");
+const web3 = new Web3();
 
 const { projectId, mnemonic } = require('./secrets.json');
 const HDWalletProvider = require('@truffle/hdwallet-provider');
@@ -45,17 +47,17 @@ module.exports = {
     // tab if you use this network and you must also set the `host`, `port` and `network_id`
     // options below to some value.
     //
-     development: {
+    development: {
       host: "127.0.0.1",     // Localhost (default: none)
       port: 8545,            // Standard Ethereum port (default: none)
       network_id: "*",       // Any network (default: none)
-     },
-     rinkeby: {
+    },
+    rinkeby: {
       //provider: () => new HDWalletProvider(mnemonic, `https://rinkeby.infura.io/v3/${projectId}`),
       provider: () => new HDWalletProvider({
         mnemonic,
         providerOrUrl:
-        `https://rinkeby.infura.io/v3/${projectId}`,
+          `https://rinkeby.infura.io/v3/${projectId}`,
         chainId: 4,
       }),
       network_id: 4,       // Rinkeby's id
@@ -64,32 +66,45 @@ module.exports = {
       timeoutBlocks: 200,  // # of blocks before a deployment times out  (minimum/default: 50)
       skipDryRun: true     // Skip dry run before migrations? (default: false for public nets )
     },
-     ropsten: {
-      provider: () => new HDWalletProvider(mnemonic, `https://ropsten.infura.io/v3/${projectId}`),
+    ropsten: {
+      provider: () => new HDWalletProvider({
+        mnemonic,
+        providerOrUrl:
+          `https://ropsten.infura.io/v3/${projectId}`,
+        chainId: 3,
+      }),
       network_id: 3,       // Ropsten's id
       gas: 8000000,        // Ropsten has a lower block limit than mainnet
       confirmations: 2,    // # of confs to wait between deployments. (default: 0)
       timeoutBlocks: 200,  // # of blocks before a deployment times out  (minimum/default: 50)
       //skipDryRun: true     // Skip dry run before migrations? (default: false for public nets )
+      gasPrice: web3.utils.toWei('20', 'gwei'),
     },
     mainnet: {
-      provider: function() {
-        return new HDWalletProvider(mnemonic, `https://mainnet.infura.io/v3/${projectId}`)
-      },
-   //   gas: 5000000,
+      provider: () => new HDWalletProvider({
+        mnemonic,
+        providerOrUrl:
+          `https://mainnet.infura.io/v3/${projectId}`,
+        chainId: 1,
+      }),
       gasPrice: 165000000000,
       network_id: 1
     },
-    
-  
+
+
     maticVigil: {
       provider: () => new HDWalletProvider(
         mnemonic,
-        `https://rpc-mumbai.maticvigil.com/v1/153a2a693678a63ca32c29a331112f3247b5a72a`,        
+        `https://rpc-mumbai.maticvigil.com/v1/153a2a693678a63ca32c29a331112f3247b5a72a`,
       ),
       network_id: 80001,
     },
-   
+    maticmainnet: {
+      provider: function () {
+        return new HDWalletProvider(mnemonic, 'https://rpc-mainnet.maticvigil.com/v1/153a2a693678a63ca32c29a331112f3247b5a72a');
+      },
+      network_id: '137',
+    },
     bscTestnet: {
       provider: () => new HDWalletProvider(mnemonic, `https://data-seed-prebsc-1-s1.binance.org:8545`),
       network_id: 97,
@@ -133,7 +148,7 @@ module.exports = {
   // Configure your compilers
   compilers: {
     solc: {
-       version: "0.8.4",    // Fetch exact version from solc-bin (default: truffle's version)
+      version: "0.8.4",    // Fetch exact version from solc-bin (default: truffle's version)
       // docker: true,        // Use "0.5.1" you've installed locally with docker (default: false)
       // settings: {          // See the solidity docs for advice about optimization and evmVersion
       //  optimizer: {
