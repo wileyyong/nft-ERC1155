@@ -70,25 +70,26 @@ module.exports = {
       provider: () => new HDWalletProvider({
         mnemonic,
         providerOrUrl:
-          `https://ropsten.infura.io/v3/${projectId}`,
+          `wss://ropsten.infura.io/ws/v3/caeeffa3f73f4fa28e19e16ecb78de31`,
         chainId: 3,
       }),
       network_id: 3,       // Ropsten's id
-      gas: 8000000,        // Ropsten has a lower block limit than mainnet
-      confirmations: 2,    // # of confs to wait between deployments. (default: 0)
-      timeoutBlocks: 200,  // # of blocks before a deployment times out  (minimum/default: 50)
-      //skipDryRun: true     // Skip dry run before migrations? (default: false for public nets )
-      gasPrice: web3.utils.toWei('20', 'gwei'),
+      //  gas: 8000000,        // Ropsten has a lower block limit than mainnet
+    //  confirmations: 2,    // # of confs to wait between deployments. (default: 0)
+     // timeoutBlocks: 200,  // # of blocks before a deployment times out  (minimum/default: 50)
+    //  skipDryRun: true,     // Skip dry run before migrations? (default: false for public nets )
+      gasPrice: web3.utils.toWei('110', 'gwei'),
     },
     mainnet: {
       provider: () => new HDWalletProvider({
         mnemonic,
-        providerOrUrl:
-          `https://mainnet.infura.io/v3/${projectId}`,
+        providerOrUrl: `wss://mainnet.infura.io/ws/v3/caeeffa3f73f4fa28e19e16ecb78de31`,
         chainId: 1,
       }),
-      gasPrice: web3.utils.toWei('20', 'gwei'), // check in ethgasstation.info the gas price and tip
-      network_id: 1
+      //timeoutBlocks: 200,  // # of blocks before a deployment times out  (minimum/default: 50)
+      gasPrice: web3.utils.toWei('95', 'gwei'), // check in ethgasstation.info the gas price and tip
+      network_id: 1,
+      skipDryRun: true,
     },
 
 
