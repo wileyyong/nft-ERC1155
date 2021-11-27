@@ -108,7 +108,7 @@ module.exports = {
       network_id: '137',
       gasPrice: web3.utils.toWei('100', 'gwei'),
       skipDryRun: true,
-      gas: 6721975, 
+      gas: 6721975, // mandatory on matic mainnet. Otherwise triggers a "gas limit" error
     },
 
     bscTestnet: {
