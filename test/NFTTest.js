@@ -34,6 +34,8 @@ contract("Base1155 token", accounts => {
   it("Should create 10 copies of token id 1", async () => {
     var createItemResponse = await instance.createItem(10, 200, "", { from: artist });
     assert.equal(createItemResponse.receipt.logs[0].args.id, 1);
+    let gasUsed = createItemResponse.receipt.gasUsed;
+    console.log(`Total GasUsed on mint: ${gasUsed}`);
   });
 
 
