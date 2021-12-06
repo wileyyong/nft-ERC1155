@@ -507,9 +507,8 @@ console.log(`Total GasUsed on buy: ${gasUsed}`);
 
     await helper.advanceTimeAndBlock(20); 
 
-    await engine.closeAuction(3,{ from: artist});
-
-    
+    // check close auction works
+    await engine.closeAuction(3,{ from: artist});   
   });
   
   
