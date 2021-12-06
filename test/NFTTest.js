@@ -47,7 +47,7 @@ contract("Base1155 token", accounts => {
   it("Should show URL", async () => {
     const url2 = await instance.uri(2);
     //    console.log("The tokenURI is = " + url2);
-    assert.equal(url2, "https://nft.xsigma.ga/api/tokens/{id}.json");
+    assert.equal(url2, "https://nft.xsigma.ga/api/tokens/ERC1155MATIC/{id}.json");
   });
 
   it("Should show how many tokens of type 1 has the creator", async () => {
@@ -487,6 +487,32 @@ console.log(`Total GasUsed on buy: ${gasUsed}`);
     }
 
   });
+
+  it("Should create 2 copies of nft with tokenId 6", async () => {
+    var createItemResponse = await instance.createItem(2, 0, "", { from: artist });
+    assert.equal(createItemResponse.receipt.logs[0].args.id, 6);
+  });
+  
+  it("should create an auction and run the flow buying the last copy while there is an active auction", async function () {
+    let result = await engine.createOffer(instance.address, 6, 2, true, true, 10000, 0, 0, 10, { from: artist });
+    assert.equal(result.receipt.logs[0].args._index, 8);
+    
+    result = await engine.createAuctionAndBid(8, 1, { from: buyer, value: 10000 });
+    assert.equal(result.receipt.logs[0].args._index, 3);
+   
+    let offer = await engine.offers(8);
+    //console.log(JSON.stringify(offer));
+
+    await engine.buy(8, 1, { from: buyer, value: 10000 });
+
+    await helper.advanceTimeAndBlock(20); 
+
+    await engine.closeAuction(3,{ from: artist});
+
+    
+  });
+  
+  
 
   it("Should transfer funds to contract owner again", async () => {
     let userBalanceB = await web3.eth.getBalance(accounts[8]);

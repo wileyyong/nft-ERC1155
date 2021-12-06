@@ -148,7 +148,7 @@ contract Engine is Ownable, ReentrancyGuard {
 
         require(auction.active == true, "Auction not active");
         require(isFinished(_auctionId), "The auction is still active");
-        require(offer.isAuction == true, "Auction is not active");
+    //    require(offer.isAuction == true, "Auction is not active");
 
         Base1155 asset = Base1155(offer.tokenAddress);
 
