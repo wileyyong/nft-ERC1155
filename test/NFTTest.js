@@ -485,7 +485,6 @@ console.log(`Total GasUsed on buy: ${gasUsed}`);
     catch (error) {
       assert.equal(error.reason, "Auction not active");
     }
-
   });
 
   it("Should create 2 copies of nft with tokenId 6", async () => {
@@ -501,7 +500,6 @@ console.log(`Total GasUsed on buy: ${gasUsed}`);
     assert.equal(result.receipt.logs[0].args._index, 3);
    
     let offer = await engine.offers(8);
-    //console.log(JSON.stringify(offer));
 
     await engine.buy(8, 1, { from: buyer, value: 10000 });
 
@@ -509,8 +507,7 @@ console.log(`Total GasUsed on buy: ${gasUsed}`);
 
     // check close auction works
     await engine.closeAuction(3,{ from: artist});   
-  });
-  
+  }); 
   
 
   it("Should transfer funds to contract owner again", async () => {
