@@ -106,7 +106,7 @@ module.exports = {
         return new HDWalletProvider(mnemonic, 'https://rpc-mainnet.maticvigil.com/v1/153a2a693678a63ca32c29a331112f3247b5a72a');
       },
       network_id: '137',
-      gasPrice: web3.utils.toWei('100', 'gwei'),
+      gasPrice: web3.utils.toWei('30', 'gwei'),
       skipDryRun: true,
       gas: 6721975, // mandatory on matic mainnet. Otherwise triggers a "gas limit" error
     },

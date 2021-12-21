@@ -47,7 +47,7 @@ contract("Base1155 token", accounts => {
   it("Should show URL", async () => {
     const url2 = await instance.uri(2);
     //    console.log("The tokenURI is = " + url2);
-    assert.equal(url2, "https://nft.xsigma.ga/api/tokens/ERC1155MATIC/{id}.json");
+    assert.equal(url2, "https://beta.xsigma.ga/api/tokens/ERC1155MATIC/{id}.json");
   });
 
   it("Should show how many tokens of type 1 has the creator", async () => {

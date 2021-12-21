@@ -18,7 +18,7 @@ contract Base1155 is ERC1155, Ownable {
     mapping(uint256 => TokenData) public tokens;
 
     constructor()        
-        ERC1155("https://nft.xsigma.ga/api/tokens/ERC1155MATIC/{id}.json")
+        ERC1155("https://beta.xsigma.ga/api/tokens/ERC1155MATIC/{id}.json")
     {}
     
     function createItem(
