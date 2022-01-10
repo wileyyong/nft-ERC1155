@@ -19,7 +19,8 @@ contract Base1155 is ERC1155, Ownable {
 
     constructor()        
        // ERC1155("beta.xsigma.ga/api/tokens/{id}.json")
-       ERC1155("https://beta.xsigma.ga/api/tokens/ERC1155MATIC/{id}.json")
+      // ERC1155("https://beta.xsigma.ga/api/tokens/ERC1155MATIC/{id}.json")
+       ERC1155("https://beta.xsigma.ga/api/tokens/ERC1155BSC/{id}.json")
     {}
     
     function createItem(
